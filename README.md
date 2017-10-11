@@ -14,7 +14,9 @@ Still extreme wip.
 
 ## Future work
 
-The developers of fontTools are working on [otlib](https://github.com/fonttools/fonttools/issues/468) which should turn gpos and gsub data into native Python objects. This is much cleaner than using our current solution of converting fonts to ttx and using regex.
+### Comparing OpenType features
+
+The developers of fontTools are working on [otlLib](https://github.com/fonttools/fonttools/issues/468) which will make working with OpenType data much easier. Our current solution uses the approach implemented in nototools. We ttxn the gpos and gsub font tables then use regular expressions to parse the data. We should refactor once otlLib can unbuild OpenType features.
 
 
 ## Installation
