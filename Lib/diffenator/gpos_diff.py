@@ -10,7 +10,7 @@ __all__ = ['MarkDiffFinder', 'KernDiffFinder']
 
 
 class MarkDiffFinder(object):
-    def __init__(self, font_a, font_b, error_bound=20, font=TTXFont):
+    def __init__(self, font_a, font_b, error_bound=20):
         self._font_a = font_a
         self._font_b = font_b
         self._error_bound = error_bound
