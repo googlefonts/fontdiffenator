@@ -110,29 +110,36 @@ class MarkDiffFinder(object):
 
     def _subtract_from(self, coll1, coll2):
         leftover = []
-        known = set(coll2)
-        for (glyph, k_class), (val_x, val_y) in coll1.items():
-            if (glyph, k_class) not in coll2:
-                coord = (val_x, val_y)
+        known = [(k.glyph, k.group) for k in coll1]
+        for mark in coll2:
+            if (mark.glyph, mark.group) not in known:
+                coord = (mark.x, mark.y)
                 if sum(coord) > self._error_bound:
                     leftover.append({
-                        'glyph': glyph,
-                        'class': k_class,
+                        'glyph': mark.glyph,
+                        'class': mark.group,
                         'coord': coord
                     })
         leftover.sort(key=lambda t: t['glyph'], reverse=True)
         return leftover
 
     def _modified_marks(self, coll1, coll2):
+        a, b = {}, {}
         modified = []
-        shared_keys = [a for a in coll1 if a in coll2]
+        for m in coll1:
+            a[tuple(m.glyph), tuple(m.group)] = (m.x, m.y)
 
-        for key in shared_keys:
-            if coll1[key] != coll2[key]:
+        for m in coll2:
+            a[tuple(m.glyph), tuple(m.group)] = (m.x, m.y)
+
+        shared = set(a.keys()) & set(b.keys())
+
+        for key in shared:
+            if a[key] != b[key]:
                 x_diff = coll2[key][0] - coll1[key][0]
                 y_diff = coll2[key][1] - coll1[key][1]
                 diff = (x_diff, y_diff)
-                if sum(diff) > self._error_bound:
+                if abs(sum(diff)) > self._error_bound:
                     modified.append({
                         'glyph': key[0],
                         'class': key[1],
@@ -143,8 +150,9 @@ class MarkDiffFinder(object):
         return modified
 
 
+
 class KernDiffFinder(object):
-    def __init__(self, font_a, font_b, error_bound, font=TTXFont):
+    def __init__(self, font_a, font_b, error_bound=20):
         self._font_a = font_a
         self._font_b = font_b
         self._error_bound = error_bound
@@ -181,10 +189,10 @@ class KernDiffFinder(object):
         a, b = {}, {}
         modified = []
         for k in kern1:
-            a[tuple(k['left']), tuple(k['right'])] = k['value']
+            a[tuple(k.left), tuple(k.right)] = k.value
 
         for k in kern2:
-            b[tuple(k['left']), tuple(k['right'])] = k['value']
+            b[tuple(k.left), tuple(k.right)] = k.value
 
         shared = set(a.keys()) & set(b.keys())
 
@@ -193,7 +201,7 @@ class KernDiffFinder(object):
                 diff = b[pair] - a[pair]
                 if abs(diff) > self._error_bound:
                     modified.append(
-                        {'left': list(pair[0]), 
+                        {'left': list(pair[0]),
                          'right': list(pair[1]),
                          'kern_diff': diff
                         }
@@ -203,10 +211,10 @@ class KernDiffFinder(object):
 
     def _subtract_kerns(self, kern1, kern2):
         leftover = []
-        known = [(k['left'], k['right']) for k in kern1]
+        known = [(k.left, k.right) for k in kern1]
         for kern in kern2:
-            if (kern['left'], kern['right']) not in known:
-                if abs(kern['value']) > self._error_bound:
+            if (kern.left, kern.right) not in known:
+                if abs(kern.value) > self._error_bound:
                     leftover.append(kern)
-        leftover.sort(key=lambda t: abs(t['value']), reverse=True)
+        leftover.sort(key=lambda t: abs(t.value), reverse=True)
         return leftover

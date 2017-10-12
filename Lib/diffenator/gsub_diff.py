@@ -58,5 +58,5 @@ class GsubDiffFinder(object):
         for item in coll1:
             if item not in coll2:
                 leftover.append(item)
-        leftover.sort(key=lambda t: t['feat'])
+        leftover.sort(key=lambda t: t.feature)
         return leftover
