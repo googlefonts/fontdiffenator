@@ -32,20 +32,21 @@ def main():
     cli_report(args.font_a, args.font_b, comparison, output_lines)
 
 
-def cli_report(font_a, font_b, comp_data, output_lines=20):
+def cli_report(font_a, font_b, comp_data, output_lines=10):
     """Generate a report wip"""
     # TODO (m4rc1e): turn into decent report with good formatting.
     print '%s vs %s' % (font_a, font_b)
     for category in comp_data:
-        if comp_data[category]:
-            print '\n***%s: %s differences***' % (
-                category, len(comp_data[category])
-            )
-            for comp in comp_data[category][:output_lines]:
-                print comp
-        else:
-            print '\n***%s***' % category
-            print 'No differences'
+        for sub_category in comp_data[category]:
+            if comp_data[category][sub_category]:
+                print '\n***%s %s %s***' % (
+                    category, len(comp_data[category][sub_category]), sub_category
+                )
+                for comp in comp_data[category][sub_category][:output_lines]:
+                    print comp
+            else:
+                print '\n***%s %s***' % (category, sub_category)
+                print 'No differences'
 
 
 if __name__ == '__main__':

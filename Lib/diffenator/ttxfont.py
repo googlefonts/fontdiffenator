@@ -27,7 +27,6 @@ class TTXFont(TTFont):
     properly. The object api endpoints will also change when this
     happens so we should refactor."""
     def __init__(self, file):
-        """Parse font data from a font ttx file"""
         super(TTXFont, self).__init__(file)
         self.file = file
         ttxn_file = tempfile.NamedTemporaryFile()

@@ -59,7 +59,7 @@ class TestCompareFonts(EnvSetup):
         font_b = self.font_path
 
         comparison = diff_fonts(font_a, font_b, rendered_diffs=False)
-        self.assertNotEqual([], comparison['new_kerning_values'])
+        self.assertNotEqual([], comparison['kerning']['new'])
 
     def test_missing_kerning(self):
         """Use pyftsubset to strip the kerning out of a font"""
@@ -69,7 +69,7 @@ class TestCompareFonts(EnvSetup):
         font_b = self.modified_path
 
         comparison = diff_fonts(font_a, font_b, rendered_diffs=False)
-        self.assertNotEqual([], comparison['missing_kerning_values'])
+        self.assertNotEqual([], comparison['kerning']['missing'])
         
     def test_modified_kerning(self):
 
@@ -82,7 +82,7 @@ class TestCompareFonts(EnvSetup):
         font_b = self.modified_path
 
         comparison = diff_fonts(font_a, font_b, rendered_diffs=False)
-        self.assertNotEqual([], comparison['modified_kerning_values'])
+        self.assertNotEqual([], comparison['kerning']['modified'])
 
     def test_new_glyphs(self):
         """Subset our souce font so it only contains 100 glyphs using
@@ -93,7 +93,7 @@ class TestCompareFonts(EnvSetup):
         font_b = self.font_path
         
         comparison = diff_fonts(font_a, font_b, rendered_diffs=False)
-        self.assertNotEqual([], comparison['new_glyphs'])
+        self.assertNotEqual([], comparison['charset']['new'])
 
     def test_missing_glyphs(self):
         self._subset_font(["--gids=0-100"])
@@ -102,7 +102,7 @@ class TestCompareFonts(EnvSetup):
         font_b = self.modified_path
         
         comparison = diff_fonts(font_a, font_b, rendered_diffs=False)
-        self.assertNotEqual([], comparison['missing_glyphs'])
+        self.assertNotEqual([], comparison['charset']['missing'])
 
     def test_modified_glyphs(self):
         ttfont = TTFont(self.font_path)
@@ -113,7 +113,7 @@ class TestCompareFonts(EnvSetup):
         font_b = self.modified_path
 
         comparison = diff_fonts(font_a, font_b, rendered_diffs=True)
-        self.assertNotEqual([], comparison['modified_glyphs'])
+        self.assertNotEqual([], comparison['charset']['modified'])
 
     def test_modified_metrics(self):
         """Change the sidebearings of the A"""
@@ -126,7 +126,7 @@ class TestCompareFonts(EnvSetup):
         font_b = modified_path
 
         comparison = diff_fonts(font_a, font_b, rendered_diffs=False)
-        self.assertNotEqual([{}], comparison['modified_sidebearings'])
+        self.assertNotEqual([{}], comparison['metrics']['modified'])
 
     def test_new_gsub(self):
         """Use pyftsubset to strip out the pnum feature"""
@@ -136,7 +136,7 @@ class TestCompareFonts(EnvSetup):
         font_b = self.font_path
 
         comparison = diff_fonts(font_a, font_b, rendered_diffs=False)
-        self.assertNotEqual([], comparison['new_gsub_rules'])
+        self.assertNotEqual([], comparison['gsub']['new'])
 
     def test_missing_gsub(self):
 
@@ -146,7 +146,7 @@ class TestCompareFonts(EnvSetup):
         font_b = self.modified_path
 
         comparison = diff_fonts(font_a, font_b, rendered_diffs=False)
-        self.assertNotEqual([], comparison['missing_gsub_rules'])
+        self.assertNotEqual([], comparison['gsub']['missing'])
 
 #     TODO: (M4rc1e)
 #     def test_new_marks(self):
