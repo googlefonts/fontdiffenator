@@ -1,4 +1,7 @@
-"""Functions to produce font metrics"""
+"""Functions to produce font metrics.
+
+Caveat, the rsb implementation is only accurate when curve points are
+on the extrema"""
 
 def glyph_metrics(font, glyph):
     lsb = _glyph_lsb(font, glyph)

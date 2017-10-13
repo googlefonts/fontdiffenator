@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import argparse
+import collections
 from ttxfont import TTXFont
 from metrics import font_glyph_metrics
 import shape_diff
@@ -34,8 +35,7 @@ def diff_fonts(font_a_path, font_b_path, rendered_diffs=False):
     Thin is allowed.
 
     Metrics:
-    20 units is the maximum allowed difference. If a font is monospaced, the
-    advanced width should be the same.
+    20 units is the maximum allowed difference.
 
     Kerning:
     20 units is the maxium allowed difference
@@ -47,38 +47,50 @@ def diff_fonts(font_a_path, font_b_path, rendered_diffs=False):
     No feature should be missing
 
     """
-    d = {}
+    d = collections.defaultdict(dict)
 
     font_a = TTXFont(font_a_path)
     font_b = TTXFont(font_b_path)
 
-    kern_a_hash = {(tuple(i.left), tuple(i.right)): i for i in font_a.kern_values}
-    kern_b_hash = {(tuple(i.left), tuple(i.right)): i for i in font_b.kern_values}
-    d['kerning'] = diff(kern_a_hash, kern_b_hash)
+    kern_a, kern_b = font_a.kern_values, font_b.kern_values
+    d['kerning']['new'] = sorted(subtract(kern_b, kern_a, 
+                                          ['left', 'right']),
+                          key=lambda k: abs(k['value']), reverse=True)
+    d['kerning']['missing'] = sorted(subtract(kern_a, kern_b,
+                                              ['left', 'right']),
+                              key=lambda k: abs(k['value']), reverse=True)
+    d['kerning']['modified'] = sorted(modified(kern_a, kern_b, ['left', 'right']),
+                               key=lambda k: abs(k['value']), reverse=True)
 
-    gsub_a_hash = {(tuple(i.input), tuple(i.result)):i for i in font_a.gsub_rules}
-    gsub_b_hash = {(tuple(i.input), tuple(i.result)):i for i in font_b.gsub_rules}
-    d['gsub'] = diff(gsub_a_hash, gsub_b_hash, get_modified=False)
+    gsub_a, gsub_b = font_a.gsub_rules, font_b.gsub_rules
+    d['gsub']['new'] = sorted(subtract(gsub_b, gsub_a,['feature', 'input', 'result']),
+                        key=lambda k: k['feature'])
+    d['gsub']['missing'] = sorted(subtract(gsub_a, gsub_b, ['feature', 'input', 'result']),
+                        key=lambda k: k['feature'])
 
-    mark_base_a_hash = {(tuple(i.glyph), tuple(i.group)):i for i in font_a.base_anchors}
-    mark_base_b_hash = {(tuple(i.glyph), tuple(i.group)):i for i in font_b.base_anchors}
-    d['anchors_base'] = diff(mark_base_a_hash, mark_base_b_hash)
+    for anchor_cat in ('base_anchors', 'mark_anchors', 'class_anchors'):
+        anchors_a = getattr(font_a, anchor_cat)
+        anchors_b = getattr(font_b, anchor_cat)
 
-    mark_mark_a_hash = {(tuple(i.glyph), tuple(i.group)):i for i in font_a.mark_anchors}
-    mark_mark_b_hash = {(tuple(i.glyph), tuple(i.group)):i for i in font_b.mark_anchors}
-    d['anchors_mark'] = diff(mark_mark_a_hash, mark_mark_b_hash)
+        d[anchor_cat]['new'] = sorted(subtract(anchors_b, anchors_a, ['glyph', 'group']),
+                                    key=lambda k: k['glyph'])
+        d[anchor_cat]['missing'] = sorted(subtract(anchors_a, anchors_b, ['glyph', 'group']),
+                                        key=lambda k: k['glyph'])
+        d[anchor_cat]['modified'] = sorted(modified(anchors_a, anchors_b, ['glyph', 'group']),
+                                        key=lambda k: abs(k['x']) + abs(k['y']))
 
-    mark_class_a_hash = {(tuple(i.glyph), tuple(i.group)): i for i in font_a.class_anchors}
-    mark_class_b_hash = {(tuple(i.glyph), tuple(i.group)): i for i in font_b.class_anchors}
-    d['anchors_class'] = diff(mark_mark_a_hash, mark_mark_b_hash)
+    metrics_a = font_glyph_metrics(font_a)
+    metrics_b = font_glyph_metrics(font_b)
+    d['metrics']['modified'] = sorted(modified(metrics_a, metrics_b, ['glyph']),
+                                        key=lambda k: abs(k['adv']))
 
-    charset_a_hash = {(i): i for i in font_a.getGlyphSet().keys()}
-    charset_b_hash = {(i): i for i in font_b.getGlyphSet().keys()}
-    d['charset'] = diff(charset_a_hash, charset_b_hash, get_modified=False)
+    glyphset_a = [{'glyph': i} for i in font_a.getGlyphSet().keys()]
+    glyphset_b = [{'glyph': i} for i in font_b.getGlyphSet().keys()]
+    d['glyphs']['new'] = sorted(subtract(glyphset_b, glyphset_a),
+                        key=lambda k: k['glyph'])
+    d['glyphs']['missing'] = sorted(subtract(glyphset_a, glyphset_b),
+                        key=lambda k: k['glyph'])
 
-    metrics_a_hash = {(i.glyph): i for i in font_glyph_metrics(font_a)}
-    metrics_b_hash = {(i.glyph): i for i in font_glyph_metrics(font_b)}
-    d['metrics'] = diff(metrics_a_hash, metrics_b_hash, get_new=False, get_missing=False)
 
     # Glyph Shaping
     # TODO (m4rc1e): Rework diff object
@@ -87,39 +99,119 @@ def diff_fonts(font_a_path, font_b_path, rendered_diffs=False):
         font_a_path, font_b_path,
         shape_report, diff_threshold=DIFF_THRESH
     )
-
     if rendered_diffs:
         shape.find_rendered_diffs()
     else:
         shape.find_area_diffs()
     shape.cleanup()
-    d['charset']['modified'] = [{'glyph': g[0], 'diff': g[1]}
-                                for g in shape_report['compared']]
     return d
 
 
-def diff(coll1, coll2, threshold=20, get_same=False, get_new=True,
-         get_missing=True, get_modified=True):
-    comp = {}
-    if get_missing:
-        comp['missing'] = [coll1[i] for i in coll1 if i not in coll2]
-    if get_new:
-        comp['new'] = [coll2[i] for i in coll2 if i not in coll1]
-    if get_same:
-        comp['same'] = [coll1[i] for i in coll1 if i in coll2]
+def subtract(obj_a, obj_b, keys=None):
+    """Compare two lists of dicts and return a list of dicts which are
+    in obj_a but not in obj_b.
 
-    if get_modified:
-        shared = set(coll1) & set(coll2)
-        modified = []
-        for i in shared:
-            val1, val2 = coll1[i], coll2[i]
-            if val1 != val2:
-                try:
-                    diff = abs(sum(val1) - sum(val2))
-                    if diff > threshold:
-                        diff = (val1, val2)
-                except TypeError:
-                    diff = (val1, val2) 
-                modified.append((coll1[i], coll2[i]))
-        comp['modified'] = modified
-    return comp
+    Keys are used to find matching dicts between the two lists.
+
+    >>> a = [
+            {'glyph': 'a', 'x': 30, 'y': 0},
+            {'glyph': 'b', 'x': 0, 'y': 10},
+            {'glyph': 'c', 'x': 50, 'y': 0},
+    ]
+
+    >>> b = [
+            {'glyph': 'a', 'x': 100, 'y': 100},
+            {'glyph': 'b', 'x': 0, 'y': 0},
+    ]
+
+    >>> subtract(a, b, ['glyph'])
+    {'glyph': 'c', 'x': 50, 'y': 0}
+
+
+    If no keys are given, dictionaries are compared in the similar manner
+    as the __eq__ method.
+
+    >>> a[0] == b[0]
+    False
+    >>> subtract(a, b)
+    [
+    {'glyph': 'a', 'x': 30, 'y': 0},
+    {'glyph': 'c', 'x': 50, 'y': 0},
+    ] 
+
+    """
+    mod = []
+    if keys:
+        hash_a = _hash(obj_a, keys)
+        hash_b = _hash(obj_b, keys)
+    else:
+        hash_a = _hash(obj_a, obj_a[0].keys())
+        hash_b = _hash(obj_b, obj_b[0].keys())
+    return [hash_a[i] for i in hash_a if i not in hash_b]
+
+
+def modified(obj_a, obj_b, keys):
+    """Compare two lists of dicts and return a new list of dicts which
+    contain the numerical difference between matching dicts.
+
+    Keys are used to find matching dicts between the two lists.
+
+    a = [
+        {'glyph': 'a', 'x': 30, 'y': 0},
+        {'glyph': 'b', 'x': 0, 'y': 10},
+        {'glyph': 'c', 'x': 50, 'y': 0},
+    ]
+
+    b = [
+        {'glyph': 'a', 'x': 100, 'y': 100},
+        {'glyph': 'b', 'x': 0, 'y': 0},
+    ]
+
+    >>> modified(a, b, ['glyph'])
+    [{'glyph': 'a': 'x': 70, 'y': 0}]
+    """
+    mod = []
+    hash_a = _hash(obj_a, keys)
+    hash_b = _hash(obj_b, keys)
+
+    shared_keys = set(hash_a) & set(hash_b)
+    for key in shared_keys:
+        if hash_a[key] != hash_b[key]:
+            mod.append(_difference_dict(hash_a[key], hash_b[key]))
+    return mod
+
+
+def _hash(obj, keys):
+    a = {}
+    for item in obj:
+        key = _build_prehash(item, keys)
+        a[key] = item
+    return a
+
+
+def _build_prehash(obj, keys):
+    h = []
+    for key in keys:
+        if isinstance(obj[key], list):
+            key = tuple(obj[key])
+            h.append(key)
+        else:
+            h.append(obj[key])
+    return tuple(h)
+
+
+def _difference_dict(dict_a, dict_b):
+    """Get numerical differences between two python dicts
+
+    >>> a = {'a': 100, 'b': 200}
+    >>> b = {'a': 30, 'b': 50}
+    >>> difference_dict(a, b)
+    {'a': 70, 'b': 150}
+    """
+    d = {}
+    for key in dict_a:
+        if isinstance(dict_a[key], (int, float)):
+            d[key] = dict_b[key] - dict_a[key]
+        else:
+            d[key] = dict_a[key]
+    return d
