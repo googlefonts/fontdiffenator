@@ -13,7 +13,7 @@ import subprocess
 import tempfile
 
 
-__all__ = ['TTXFont']
+__all__ = ['TTXFont', 'Kern', 'GsubRule', 'AnchorPos']
 
 
 class TTXFont(TTFont):
@@ -66,7 +66,6 @@ class TTXFont(TTFont):
 
     def _parse_anchor_info(self, text,  rx1, rx2):
         anchor_rules = []
-        Anchor = namedtuple('Anchor', ['glyph', 'group', 'x', 'y'])
         current_glyphs = None
         for line in text.split('\n'):
             glyphs = rx1.search(line)
@@ -77,7 +76,7 @@ class TTXFont(TTFont):
             if anchor and current_glyphs:
                 parsed = current_glyphs.groups() + anchor.groups()
                 glyph, x, y, group = parsed
-                anchor_rules.append(Anchor(glyph, group, int(x), int(y)))
+                anchor_rules.append(AnchorPos(glyph, group, int(x), int(y)))
         return anchor_rules
 
     def _parse_kerning(self):
@@ -98,7 +97,6 @@ class TTXFont(TTFont):
     def _parse_kerning_values(self, rx):
         """Parse kerning rules with flattened output"""
         kern_values = []
-        Kern = namedtuple('Kern', ['left', 'right', 'value'])
         for rule in rx.findall(self.text):
             # print rule
             left, right, val = rule
@@ -204,7 +202,6 @@ class TTXFont(TTFont):
         http://www.adobe.com/devnet/opentype/afdko/topic_feature_file_syntax.html#4.e
         """
         parsed = []
-        Rule = namedtuple('Rule', ['feature', 'input', 'operator', 'result'])
         for idx, (left, op, right) in enumerate(rules):
 
             left_group, right_group = [], []
@@ -215,10 +212,10 @@ class TTXFont(TTFont):
                 right = self._gsub_rule_group_to_string(right)
 
             if op == 'by': # parse LookupType 1, 2, 4
-                parsed.append(Rule(feature, left.split(), op, right.split()))
+                parsed.append(GsubRule(feature, left.split(), op, right.split()))
             elif op == 'from': # parse LookupType 3
                 for glyph in right.split(): # 'a.alt a.sc' -> ['a.alt', 'a.sc']
-                    parsed.append(Rule(feature, left.split(), op, right.split()))
+                    parsed.append(GsubRule(feature, left.split(), op, right.split()))
         return parsed
 
     def _gsub_rule_group_to_string(self, seq):
@@ -248,3 +245,8 @@ class TTXFont(TTFont):
     @property
     def gsub_rules(self):
         return self._gsub_rules
+
+
+Kern = namedtuple('Kern', ['left', 'right', 'value'])
+GsubRule = namedtuple('Rule', ['feature', 'input', 'operator', 'result'])
+AnchorPos = namedtuple('Anchor', ['glyph', 'group', 'x', 'y'])
