@@ -1,19 +1,15 @@
 """Functions to produce font metrics"""
-from collections import namedtuple
 
 def glyph_metrics(font, glyph):
     lsb = _glyph_lsb(font, glyph)
     rsb = _glyph_rsb(font, glyph)
     adv = _glyph_adv_width(font, glyph)
-    return _GlyphMetrics(glyph, lsb, rsb, adv)
+    return {'glyph': glyph, 'lsb': lsb, 'rsb': rsb, 'adv': adv}
 
 
 def font_glyph_metrics(font):
     glyphs = font.getGlyphSet().keys()
     return [glyph_metrics(font, g) for g in glyphs]
-
-
-_GlyphMetrics = namedtuple('GlyphMetrics', ['glyph', 'lsb', 'rsb', 'adv'])
 
 
 def _glyph_adv_width(font, glyph):

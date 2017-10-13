@@ -7,13 +7,12 @@ OT methods/attribs.
 """
 
 from fontTools.ttLib import TTFont
-from collections import namedtuple
 import re
 import subprocess
 import tempfile
 
 
-__all__ = ['TTXFont', 'Kern', 'GsubRule', 'AnchorPos']
+__all__ = ['TTXFont']
 
 
 class TTXFont(TTFont):
@@ -76,7 +75,9 @@ class TTXFont(TTFont):
             if anchor and current_glyphs:
                 parsed = current_glyphs.groups() + anchor.groups()
                 glyph, x, y, group = parsed
-                anchor_rules.append(AnchorPos(glyph, group, int(x), int(y)))
+                anchor_rules.append(
+                    {'glyph': glyph, 'group': group, 'x': int(x), 'y': int(y)}
+                )
         return anchor_rules
 
     def _parse_kerning(self):
@@ -110,7 +111,7 @@ class TTXFont(TTFont):
             else:
                 right = [right]
             kern_values.append(
-                Kern(left, right, val)
+                {'left': left, 'right': right, 'value': val}
             )
         self._kern_values = kern_values
 
@@ -212,10 +213,16 @@ class TTXFont(TTFont):
                 right = self._gsub_rule_group_to_string(right)
 
             if op == 'by': # parse LookupType 1, 2, 4
-                parsed.append(GsubRule(feature, left.split(), op, right.split()))
+                parsed.append({
+                    'feature': feature, 'input': left.split(),
+                    'operator': op, 'result':right.split()
+                    })
             elif op == 'from': # parse LookupType 3
                 for glyph in right.split(): # 'a.alt a.sc' -> ['a.alt', 'a.sc']
-                    parsed.append(GsubRule(feature, left.split(), op, right.split()))
+                    parsed.append({
+                        'feature': feature, 'input': left.split(),
+                         'operator': op, 'result':right.split()
+                    })
         return parsed
 
     def _gsub_rule_group_to_string(self, seq):
@@ -245,8 +252,3 @@ class TTXFont(TTFont):
     @property
     def gsub_rules(self):
         return self._gsub_rules
-
-
-Kern = namedtuple('Kern', ['left', 'right', 'value'])
-GsubRule = namedtuple('Rule', ['feature', 'input', 'operator', 'result'])
-AnchorPos = namedtuple('Anchor', ['glyph', 'group', 'x', 'y'])
