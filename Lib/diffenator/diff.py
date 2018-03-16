@@ -108,6 +108,11 @@ def diff_fonts(font_a_path, font_b_path, rendered_diffs=False):
     # print shape_report['compared']
     d['glyphs']['modified_glyphs'] = sorted(shape_report['compared'],
                                     key=lambda k: k[1], reverse=True)
+
+    # table attribs
+    attribs_a = attribs.table_attribs(font_a)
+    attribs_b = attribs.table_attribs(font_b)
+    d['attribs']['modified'] = modified(attribs_a, attribs_b, ['attrib', 'table'])
     return d
 
 
