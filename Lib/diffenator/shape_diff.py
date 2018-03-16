@@ -13,3 +13,4 @@ class ShapeDiffFinder(ShapeDiffFinder):
             self.stats['untested'] = [i[1] for i in self.stats['untested']]
         if self.stats['compared']:
             self.stats['compared'] = [(i[1], i[0]) for i in self.stats['compared']]
+            

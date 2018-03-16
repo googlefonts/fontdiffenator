@@ -17,6 +17,7 @@ import collections
 from ttxfont import TTXFont
 from metrics import font_glyph_metrics
 import shape_diff
+import attribs
 
 
 DIFF_THRESH = 1057.5000000000025
@@ -104,6 +105,9 @@ def diff_fonts(font_a_path, font_b_path, rendered_diffs=False):
     else:
         shape.find_area_diffs()
     shape.cleanup()
+    # print shape_report['compared']
+    d['glyphs']['modified_glyphs'] = sorted(shape_report['compared'],
+                                    key=lambda k: k[1], reverse=True)
     return d
 
 
