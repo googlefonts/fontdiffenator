@@ -81,12 +81,9 @@ def diff_fonts(font_a_path, font_b_path, rendered_diffs=False):
     metrics_b = font_glyph_metrics(font_b, glyph_map_b)
     d['metrics']['modified'] = modified_metrics(metrics_a, metrics_b)
 
-    # glyphset_a = [{'glyph': i} for i in font_a.getGlyphSet().keys()]
-    # glyphset_b = [{'glyph': i} for i in font_b.getGlyphSet().keys()]
-    # d['glyphs']['new'] = sorted(subtract(glyphset_b, glyphset_a),
-    #                     key=lambda k: k['glyph'])
-    # d['glyphs']['missing'] = sorted(subtract(glyphset_a, glyphset_b),
-    #                     key=lambda k: k['glyph'])
+    glyphset_a = [i for i in glyph_map_a.values()]
+    glyphset_b = [i for i in glyph_map_b.values()]
+    d['input']['missing'] = subtract_glyphs(glyphset_a, glyphset_b)
 
     # # Glyph Shaping
     # # TODO (m4rc1e): Rework diff object
@@ -267,3 +264,15 @@ def modified_metrics(metrics_a, metrics_b):
             metrics_diff['rsb'] = metrics_a_h[k]['rsb'] - metrics_b_h[k]['rsb']
             table.append(metrics_diff)
     return sorted(table, key=lambda k: abs(k['adv']), reverse=True)
+
+
+def subtract_glyphs(glyphset_a, glyphset_b):
+    glyphset_a_h = {i.kkey: i for i in glyphset_a}
+    glyphset_b_h = {i.kkey: i for i in glyphset_b}
+
+    missing = set(glyphset_a_h.keys()) - set(glyphset_b_h.keys())
+
+    table = []
+    for k in missing:
+        table.append(glyphset_a_h[k])
+    return sorted(table, key=lambda k: k.name)
