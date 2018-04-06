@@ -66,12 +66,6 @@ def diff_fonts(font_a_path, font_b_path, rendered_diffs=False):
     d['kern']['new'] = subtract_kerns(kern_b, kern_a)
     d['kern']['modified'] = modified_kerns(kern_a, kern_b)
 
-    # gsub_a, gsub_b = font_a.gsub_rules, font_b.gsub_rules
-    # d['gsub']['new'] = sorted(subtract(gsub_b, gsub_a,['feature', 'input', 'result']),
-    #                     key=lambda k: k['feature'])
-    # d['gsub']['missing'] = sorted(subtract(gsub_a, gsub_b, ['feature', 'input', 'result']),
-    #                     key=lambda k: k['feature'])
-
     # for anchor_cat in ('base_anchors', 'mark_anchors', 'class_anchors'):
     #     anchors_a = getattr(font_a, anchor_cat)
     #     anchors_b = getattr(font_b, anchor_cat)
@@ -93,7 +87,6 @@ def diff_fonts(font_a_path, font_b_path, rendered_diffs=False):
     #                     key=lambda k: k['glyph'])
     # d['glyphs']['missing'] = sorted(subtract(glyphset_a, glyphset_b),
     #                     key=lambda k: k['glyph'])
-
 
     # # Glyph Shaping
     # # TODO (m4rc1e): Rework diff object
