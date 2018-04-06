@@ -15,7 +15,10 @@
 import argparse
 import collections
 from ttxfont import TTXFont
+from fontTools.ttLib import TTFont
 from metrics import font_glyph_metrics
+from kerning import flatten_kerning
+from glyphs import glyph_map
 import shape_diff
 import attribs
 
@@ -50,64 +53,64 @@ def diff_fonts(font_a_path, font_b_path, rendered_diffs=False):
     """
     d = collections.defaultdict(dict)
 
-    font_a = TTXFont(font_a_path)
-    font_b = TTXFont(font_b_path)
+    font_a = TTFont(font_a_path)
+    font_b = TTFont(font_b_path)
 
-    kern_a, kern_b = font_a.kern_values, font_b.kern_values
-    d['kerning']['new'] = sorted(subtract(kern_b, kern_a, 
-                                          ['left', 'right']),
-                          key=lambda k: abs(k['value']), reverse=True)
-    d['kerning']['missing'] = sorted(subtract(kern_a, kern_b,
-                                              ['left', 'right']),
-                              key=lambda k: abs(k['value']), reverse=True)
-    d['kerning']['modified'] = sorted(modified(kern_a, kern_b, ['left', 'right']),
-                               key=lambda k: abs(k['value']), reverse=True)
+    glyph_map_a = glyph_map(font_a)
+    glyph_map_b = glyph_map(font_b)
 
-    gsub_a, gsub_b = font_a.gsub_rules, font_b.gsub_rules
-    d['gsub']['new'] = sorted(subtract(gsub_b, gsub_a,['feature', 'input', 'result']),
-                        key=lambda k: k['feature'])
-    d['gsub']['missing'] = sorted(subtract(gsub_a, gsub_b, ['feature', 'input', 'result']),
-                        key=lambda k: k['feature'])
+    kern_a = flatten_kerning(font_a, glyph_map_a)
+    kern_b = flatten_kerning(font_b, glyph_map_b)
 
-    for anchor_cat in ('base_anchors', 'mark_anchors', 'class_anchors'):
-        anchors_a = getattr(font_a, anchor_cat)
-        anchors_b = getattr(font_b, anchor_cat)
+    d['kern']['missing'] = subtract_kerns(kern_a, kern_b)
+    d['kern']['new'] = subtract_kerns(kern_b, kern_a)
+    d['kern']['modified'] = modified_kerns(kern_a, kern_b)
 
-        d[anchor_cat]['new'] = sorted(subtract(anchors_b, anchors_a, ['glyph', 'group']),
-                                    key=lambda k: k['glyph'])
-        d[anchor_cat]['missing'] = sorted(subtract(anchors_a, anchors_b, ['glyph', 'group']),
-                                        key=lambda k: k['glyph'])
-        d[anchor_cat]['modified'] = sorted(modified(anchors_a, anchors_b, ['glyph', 'group']),
-                                        key=lambda k: abs(k['x']) + abs(k['y']))
+    # gsub_a, gsub_b = font_a.gsub_rules, font_b.gsub_rules
+    # d['gsub']['new'] = sorted(subtract(gsub_b, gsub_a,['feature', 'input', 'result']),
+    #                     key=lambda k: k['feature'])
+    # d['gsub']['missing'] = sorted(subtract(gsub_a, gsub_b, ['feature', 'input', 'result']),
+    #                     key=lambda k: k['feature'])
 
-    metrics_a = font_glyph_metrics(font_a)
-    metrics_b = font_glyph_metrics(font_b)
-    d['metrics']['modified'] = sorted(modified(metrics_a, metrics_b, ['glyph']),
-                                        key=lambda k: abs(k['adv']))
+    # for anchor_cat in ('base_anchors', 'mark_anchors', 'class_anchors'):
+    #     anchors_a = getattr(font_a, anchor_cat)
+    #     anchors_b = getattr(font_b, anchor_cat)
 
-    glyphset_a = [{'glyph': i} for i in font_a.getGlyphSet().keys()]
-    glyphset_b = [{'glyph': i} for i in font_b.getGlyphSet().keys()]
-    d['glyphs']['new'] = sorted(subtract(glyphset_b, glyphset_a),
-                        key=lambda k: k['glyph'])
-    d['glyphs']['missing'] = sorted(subtract(glyphset_a, glyphset_b),
-                        key=lambda k: k['glyph'])
+    #     d[anchor_cat]['new'] = sorted(subtract(anchors_b, anchors_a, ['glyph', 'group']),
+    #                                 key=lambda k: k['glyph'])
+    #     d[anchor_cat]['missing'] = sorted(subtract(anchors_a, anchors_b, ['glyph', 'group']),
+    #                                     key=lambda k: k['glyph'])
+    #     d[anchor_cat]['modified'] = sorted(modified(anchors_a, anchors_b, ['glyph', 'group']),
+    #                                     key=lambda k: abs(k['x']) + abs(k['y']))
+
+    # metrics_a = font_glyph_metrics(font_a)
+    # metrics_b = font_glyph_metrics(font_b)
+    # d['metrics']['modified'] = sorted(modified(metrics_a, metrics_b, ['glyph']),
+    #                                     key=lambda k: abs(k['adv']))
+
+    # glyphset_a = [{'glyph': i} for i in font_a.getGlyphSet().keys()]
+    # glyphset_b = [{'glyph': i} for i in font_b.getGlyphSet().keys()]
+    # d['glyphs']['new'] = sorted(subtract(glyphset_b, glyphset_a),
+    #                     key=lambda k: k['glyph'])
+    # d['glyphs']['missing'] = sorted(subtract(glyphset_a, glyphset_b),
+    #                     key=lambda k: k['glyph'])
 
 
-    # Glyph Shaping
-    # TODO (m4rc1e): Rework diff object
-    shape_report = {}
-    shape = shape_diff.ShapeDiffFinder(
-        font_a_path, font_b_path,
-        shape_report, diff_threshold=DIFF_THRESH
-    )
-    if rendered_diffs:
-        shape.find_rendered_diffs()
-    else:
-        shape.find_area_diffs()
-    shape.cleanup()
-    # print shape_report['compared']
-    d['glyphs']['modified_glyphs'] = sorted(shape_report['compared'],
-                                    key=lambda k: k[1], reverse=True)
+    # # Glyph Shaping
+    # # TODO (m4rc1e): Rework diff object
+    # shape_report = {}
+    # shape = shape_diff.ShapeDiffFinder(
+    #     font_a_path, font_b_path,
+    #     shape_report, diff_threshold=DIFF_THRESH
+    # )
+    # if rendered_diffs:
+    #     shape.find_rendered_diffs()
+    # else:
+    #     shape.find_area_diffs()
+    # shape.cleanup()
+    # # print shape_report['compared']
+    # d['glyphs']['modified_glyphs'] = sorted(shape_report['compared'],
+    #                                 key=lambda k: k[1], reverse=True)
 
     # table attribs
     attribs_a = attribs.table_attribs(font_a)
@@ -224,3 +227,31 @@ def _difference_dict(dict_a, dict_b):
         else:
             d[key] = dict_a[key]
     return d
+
+
+def subtract_kerns(kern_a, kern_b):
+
+    kern_a_h = {i['left'].kkey + i['right'].kkey: i for i in kern_a}
+    kern_b_h = {i['left'].kkey + i['right'].kkey: i for i in kern_b}
+
+    missing_kerns = set(kern_a_h.keys()) - set(kern_b_h.keys())
+
+    table = []
+    for k in missing_kerns:
+        table.append(kern_a_h[k])
+
+    return sorted(table, key=lambda k: abs(k['value']), reverse=True)
+
+
+def modified_kerns(kern_a, kern_b):
+
+    kern_a_h = {i['left'].kkey + i['right'].kkey: i for i in kern_a}
+    kern_b_h = {i['left'].kkey + i['right'].kkey: i for i in kern_b}
+
+    shared = set(kern_a_h.keys()) & set(kern_b_h.keys())
+
+    table = []
+    for k in shared:
+        if kern_a_h[k]['value'] != kern_b_h[k]['value']:
+            table.append(kern_a_h[k])
+    return sorted(table, key=lambda k: abs(k['value']), reverse=True)
