@@ -44,8 +44,13 @@ class InputGenerator(HbInputGenerator):
                     characters=char_seq,
                     kkey=char_seq + ' ' + ''.join(feat))
                 )
-            elif warn:
-                print('not tested (unreachable?): %s' % name)
+            else:
+                inputs.append(Glyph(
+                    name=name,
+                    features=None,
+                    characters=None,
+                    kkey=name))
+
         return inputs
 
     def input_from_name(self, name, seen=None, pad=False):

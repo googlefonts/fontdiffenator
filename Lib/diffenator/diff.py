@@ -83,10 +83,9 @@ def diff_fonts(font_a_path, font_b_path, rendered_diffs=False):
     #     d[anchor_cat]['modified'] = sorted(modified(anchors_a, anchors_b, ['glyph', 'group']),
     #                                     key=lambda k: abs(k['x']) + abs(k['y']))
 
-    # metrics_a = font_glyph_metrics(font_a)
-    # metrics_b = font_glyph_metrics(font_b)
-    # d['metrics']['modified'] = sorted(modified(metrics_a, metrics_b, ['glyph']),
-    #                                     key=lambda k: abs(k['adv']))
+    metrics_a = font_glyph_metrics(font_a, glyph_map_a)
+    metrics_b = font_glyph_metrics(font_b, glyph_map_b)
+    d['metrics']['modified'] = modified_metrics(metrics_a, metrics_b)
 
     # glyphset_a = [{'glyph': i} for i in font_a.getGlyphSet().keys()]
     # glyphset_b = [{'glyph': i} for i in font_b.getGlyphSet().keys()]
@@ -253,5 +252,25 @@ def modified_kerns(kern_a, kern_b):
     table = []
     for k in shared:
         if kern_a_h[k]['value'] != kern_b_h[k]['value']:
-            table.append(kern_a_h[k])
+            kern_diff = kern_a_h[k]
+            kern_diff['value'] = kern_a_h[k]['value'] - kern_b_h[k]['value']
+            table.append(kern_diff)
     return sorted(table, key=lambda k: abs(k['value']), reverse=True)
+
+
+def modified_metrics(metrics_a, metrics_b):
+
+    metrics_a_h = {i['glyph'].kkey: i for i in metrics_a}
+    metrics_b_h = {i['glyph'].kkey: i for i in metrics_b}
+
+    shared = set(metrics_a_h.keys()) & set(metrics_b_h.keys())
+
+    table = []
+    for k in shared:
+        if metrics_a_h[k]['adv'] != metrics_b_h[k]['adv']:
+            metrics_diff = metrics_a_h[k]
+            metrics_diff['adv'] = metrics_a_h[k]['adv'] - metrics_b_h[k]['adv']
+            metrics_diff['lsb'] = metrics_a_h[k]['lsb'] - metrics_b_h[k]['lsb']
+            metrics_diff['rsb'] = metrics_a_h[k]['rsb'] - metrics_b_h[k]['rsb']
+            table.append(metrics_diff)
+    return sorted(table, key=lambda k: abs(k['adv']), reverse=True)

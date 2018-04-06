@@ -3,15 +3,19 @@
 Caveat, the rsb implementation is only accurate when curve points are
 on the extrema"""
 
-def glyph_metrics(font, glyph):
+def glyph_metrics(font, glyph, glyph_map=None):
     lsb = _glyph_lsb(font, glyph)
     rsb = _glyph_rsb(font, glyph)
     adv = _glyph_adv_width(font, glyph)
+    if glyph_map:
+        glyph = glyph_map[glyph]
     return {'glyph': glyph, 'lsb': lsb, 'rsb': rsb, 'adv': adv}
 
 
-def font_glyph_metrics(font):
+def font_glyph_metrics(font, glyph_map=None):
     glyphs = font.getGlyphSet().keys()
+    if glyph_map:
+        return [glyph_metrics(font, g, glyph_map) for g in glyphs]
     return [glyph_metrics(font, g) for g in glyphs]
 
 
