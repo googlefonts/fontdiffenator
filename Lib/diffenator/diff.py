@@ -85,21 +85,21 @@ def diff_fonts(font_a_path, font_b_path, rendered_diffs=False):
     glyphset_b = [i for i in glyph_map_b.values()]
     d['input']['missing'] = subtract_glyphs(glyphset_a, glyphset_b)
 
-    # # Glyph Shaping
-    # # TODO (m4rc1e): Rework diff object
-    # shape_report = {}
-    # shape = shape_diff.ShapeDiffFinder(
-    #     font_a_path, font_b_path,
-    #     shape_report, diff_threshold=DIFF_THRESH
-    # )
-    # if rendered_diffs:
-    #     shape.find_rendered_diffs()
-    # else:
-    #     shape.find_area_diffs()
-    # shape.cleanup()
-    # # print shape_report['compared']
-    # d['glyphs']['modified_glyphs'] = sorted(shape_report['compared'],
-    #                                 key=lambda k: k[1], reverse=True)
+    # Glyph Shaping
+    # TODO (m4rc1e): Rework diff object
+    shape_report = {}
+    shape = shape_diff.ShapeDiffFinder(
+        font_a_path, font_b_path,
+        shape_report, diff_threshold=DIFF_THRESH
+    )
+    if rendered_diffs:
+        shape.find_rendered_diffs()
+    else:
+        shape.find_area_diffs()
+    shape.cleanup()
+    # print shape_report['compared']
+    d['glyphs']['modified_glyphs'] = sorted(shape_report['compared'],
+                                    key=lambda k: k[1], reverse=True)
 
     # table attribs
     attribs_a = attribs.table_attribs(font_a)
