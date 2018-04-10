@@ -1,5 +1,4 @@
 """Dump a font's mark and mkmk feature"""
-from fontTools.ttLib import TTFont
 
 
 def mark_lookup_idxs(ttfont):

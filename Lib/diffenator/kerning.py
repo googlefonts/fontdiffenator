@@ -1,6 +1,4 @@
-"""
-Dump a font's GPOS kerning.
-"""
+"""Dump a font's GPOS kerning."""
 
 
 def _kerning_lookup_indexes(ttfont):
