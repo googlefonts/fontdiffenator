@@ -42,21 +42,20 @@ def diff_fonts(font_a_path, font_b_path, rendered_diffs=False):
     glyph_map_a = glyph_map(font_a)
     glyph_map_b = glyph_map(font_b)
 
-    kerning = diff_kerning(font_a, font_b, glyph_map_a, glyph_map_b)
-    d['kern']['missing'] = kerning.missing
-    d['kern']['new'] = kerning.new
-    d['kern']['modified'] = kerning.modified
+    comparisons = ['new', 'missing', 'modified']
+    diffs = [
+        ('kern', diff_kerning(font_a, font_b, glyph_map_a, glyph_map_b)),
+        ('metrics', diff_metrics(font_a, font_b, glyph_map_a, glyph_map_b)),
+        ('marks', diff_marks(font_a, font_b, glyph_map_a, glyph_map_b)),
+        ('attribs', diff_attribs(font_a, font_b)),
+        ('glyphs', diff_glyphs(glyph_map_a, glyph_map_b)),
+        ('names', diff_nametable(font_a, font_b)),
+    ]
 
-    metrics = diff_metrics(font_a, font_b, glyph_map_a, glyph_map_b)
-    d['metrics']['modified'] = metrics.modified
-
-    marks = diff_marks(font_a, font_b, glyph_map_a, glyph_map_b)
-    d['marks']['new'] = marks.new
-    d['marks']['missing'] = marks.missing
-    d['marks']['modified'] = marks.modified
-
-    attribs = diff_attribs(font_a, font_b)
-    d['attribs']['modified'] = attribs.modified
+    for category, diff in diffs:
+        for comparison in comparisons:
+            if hasattr(diff, comparison):
+                d[category][comparison] = getattr(diff, comparison)
 
     # Glyph Shaping
     # TODO (m4rc1e): Rework diff object
@@ -71,15 +70,6 @@ def diff_fonts(font_a_path, font_b_path, rendered_diffs=False):
         shape.find_area_diffs()
     shape.cleanup()
 
-    glyphs = diff_glyphs(glyph_map_a, glyph_map_b)
-    d['glyphs']['modified'] = shape_report['compared']
-    d['glyphs']['new'] = glyphs.new
-    d['glyphs']['missing'] = glyphs.missing
-
-    names = diff_nametable(font_a, font_b)
-    d['names']['new'] = names.new
-    d['names']['missing'] = names.missing
-    d['names']['modified'] = names.modified
     return d
 
 
