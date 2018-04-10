@@ -17,6 +17,7 @@ from fontTools.ttLib import TTFont
 from metrics import dump_glyph_metrics
 from kerning import dump_kerning
 from attribs import dump_attribs
+from names import dump_nametable
 from marks import dump_marks
 from inputgen import glyph_map
 from collections import namedtuple
@@ -24,7 +25,8 @@ import shape_diff
 
 
 __all__ = ['diff_fonts', 'diff_metrics', 'diff_kerning',
-           'diff_marks', 'diff_attribs']
+           'diff_marks', 'diff_attribs', 'diff_glyphs']
+
 
 DIFF_THRESH = 1057.5000000000025
 
@@ -56,10 +58,6 @@ def diff_fonts(font_a_path, font_b_path, rendered_diffs=False):
     attribs = diff_attribs(font_a, font_b)
     d['attribs']['modified'] = attribs.modified
 
-    glyphset_a = [i for i in glyph_map_a.values()]
-    glyphset_b = [i for i in glyph_map_b.values()]
-    d['input']['missing'] = subtract_glyphs(glyphset_a, glyphset_b)
-
     # Glyph Shaping
     # TODO (m4rc1e): Rework diff object
     shape_report = {}
@@ -72,9 +70,73 @@ def diff_fonts(font_a_path, font_b_path, rendered_diffs=False):
     else:
         shape.find_area_diffs()
     shape.cleanup()
-    # print shape_report['compared']
+
+    glyphs = diff_glyphs(glyph_map_a, glyph_map_b)
     d['glyphs']['modified'] = shape_report['compared']
+    d['glyphs']['new'] = glyphs.new
+    d['glyphs']['missing'] = glyphs.missing
+
+    names = diff_nametable(font_a, font_b)
+    d['names']['new'] = names.new
+    d['names']['missing'] = names.missing
+    d['names']['modified'] = names.modified
     return d
+
+
+def diff_nametable(ttfont_a, ttfont_b):
+    nametable_a = dump_nametable(ttfont_a)
+    nametable_b = dump_nametable(ttfont_b)
+
+    missing = _subtract_names(nametable_a, nametable_b)
+    new = _subtract_names(nametable_b, nametable_a)
+    modified = _modified_names(nametable_a, nametable_b)
+
+    Names = namedtuple('Names', ['new', 'missing', 'modified'])
+    return Names(new, missing, modified)
+
+
+def _subtract_names(nametable_a, nametable_b):
+
+    names_a_h = {i['id']: i for i in nametable_a}
+    names_b_h = {i['id']: i for i in nametable_b}
+
+    missing = set(names_a_h.keys()) - set(names_b_h.keys())
+
+    table = []
+    for k in missing:
+        table.append(names_a_h[k])
+    return table
+
+
+def _modified_names(nametable_a, nametable_b):
+
+    names_a_h = {i['id']: i for i in nametable_a}
+    names_b_h = {i['id']: i for i in nametable_b}
+
+    shared = set(names_a_h.keys()) & set(names_b_h.keys())
+
+    table = []
+    for k in shared:
+        if names_a_h[k]['string'] != names_b_h[k]['string']:
+            row = {
+                'id': names_a_h[k]['id'],
+                'string_a': names_a_h[k]['string'],
+                'string_b': names_b_h[k]['string']
+            }
+            table.append(row)
+    return table
+
+
+def diff_glyphs(glyph_map_a, glyph_map_b):
+    # TODO (M FOLEY) work shape diff in here
+    glyphset_a = [i for i in glyph_map_a.values()]
+    glyphset_b = [i for i in glyph_map_b.values()]
+
+    missing = _subtract_glyphs(glyphset_a, glyphset_b)
+    new = _subtract_glyphs(glyphset_b, glyphset_a)
+
+    Glyphs = namedtuple('Glyphs', ['new', 'missing'])
+    return Glyphs(new, missing)
 
 
 def diff_kerning(ttfont_a, ttfont_b, glyph_map_a=None, glyph_map_b=None):
@@ -177,7 +239,7 @@ def _modified_attribs(attribs_a, attribs_b):
     return table
 
 
-def subtract_glyphs(glyphset_a, glyphset_b):
+def _subtract_glyphs(glyphset_a, glyphset_b):
     glyphset_a_h = {i.kkey: i for i in glyphset_a}
     glyphset_b_h = {i.kkey: i for i in glyphset_b}
 

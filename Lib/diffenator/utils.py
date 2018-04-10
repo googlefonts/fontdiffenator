@@ -1,9 +1,10 @@
+import os
 
 
 def cli_reporter(font_a, font_b, comp_data, output_lines=10):
     """Generate a report wip"""
     # TODO (m4rc1e): turn into decent report with good formatting.
-    print '%s vs %s' % (font_a, font_b)
+    print '%s vs %s' % (os.path.basename(font_a), os.path.basename(font_b))
     for category in comp_data:
         for sub_category in comp_data[category]:
             if comp_data[category][sub_category]:
@@ -36,10 +37,21 @@ def cli_reporter(font_a, font_b, comp_data, output_lines=10):
                         comp_data[category][sub_category][:output_lines],
                         ['glyph', 'value']
                     )
-                elif category == 'input':
+                elif category == 'glyphs':
                     print dict_cli_table(
                         comp_data[category][sub_category][:output_lines],
                         ['glyph']
+                    )
+                elif category == 'names' and sub_category == 'modified':
+                    print dict_cli_table(
+                        comp_data[category][sub_category][:output_lines],
+                        ['id', 'string_a', 'string_b'],
+                        clip_col=True
+                    )
+                elif category == 'names' and (sub_category == 'new' or sub_category == 'missing'):
+                    print dict_cli_table(
+                        comp_data[category][sub_category][:output_lines],
+                        ['id', 'string'],
                     )
                 else:
                     print dict_cli_table(comp_data[category][sub_category][:output_lines])
@@ -48,7 +60,7 @@ def cli_reporter(font_a, font_b, comp_data, output_lines=10):
                 print 'No differences'
 
 
-def dict_cli_table(l, columns=None):
+def dict_cli_table(l, columns=None, clip_col=False):
     """Output a cli friendly table from a list of dicts"""
     if not columns:
         columns = l[0].keys()
@@ -58,6 +70,9 @@ def dict_cli_table(l, columns=None):
     for row in l:
         assembled = []
         for h in columns:
-            assembled.append(row[h])
+            cell = row[h]
+            if clip_col and len(cell) >= 19:
+                cell = row[h][:16] + '...'
+            assembled.append(cell)
         table.append(t_format.format(*tuple(assembled)))
     return '\n'.join(table)
