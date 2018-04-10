@@ -23,6 +23,9 @@ from collections import namedtuple
 import shape_diff
 
 
+__all__ = ['diff_fonts', 'diff_metrics', 'diff_kerning',
+           'diff_marks', 'diff_attribs']
+
 DIFF_THRESH = 1057.5000000000025
 
 
@@ -242,10 +245,10 @@ def _modified_marks(marks_a, marks_b):
 
     table = []
     for k in shared:
-        offset_a_x = marks_a_h[k]['mark_x'] - marks_a_h[k]['mark_x']
-        offset_a_y = marks_a_h[k]['mark_y'] - marks_a_h[k]['mark_y']
-        offset_b_x = marks_b_h[k]['mark_x'] - marks_b_h[k]['mark_x']
-        offset_b_y = marks_b_h[k]['mark_y'] - marks_b_h[k]['mark_y']
+        offset_a_x = marks_a_h[k]['base_x'] - marks_a_h[k]['mark_x']
+        offset_a_y = marks_a_h[k]['base_y'] - marks_a_h[k]['mark_y']
+        offset_b_x = marks_b_h[k]['base_x'] - marks_b_h[k]['mark_x']
+        offset_b_y = marks_b_h[k]['base_y'] - marks_b_h[k]['mark_y']
 
         diff_x = offset_a_x != offset_b_x
         diff_y = offset_a_y != offset_b_y
