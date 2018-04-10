@@ -18,7 +18,7 @@ from metrics import dump_glyph_metrics
 from kerning import dump_kerning
 from attribs import dump_attribs
 from marks import dump_marks
-from glyphs import glyph_map
+from inputgen import glyph_map
 from collections import namedtuple
 import shape_diff
 

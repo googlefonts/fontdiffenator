@@ -5,7 +5,6 @@ in a font.
 TODO (M Foley) This approach is too slow on complex multilingual families
 A better approach may be to assign puas to unencoded glyphs.
 """
-from fontTools.ttLib import TTFont
 from fontTools.misc.py23 import unichr
 from nototools.hb_input import HbInputGenerator
 
@@ -35,8 +34,7 @@ class InputGenerator(HbInputGenerator):
             cur_input = self.input_from_name(name, pad=is_zero_width)
             if cur_input is not None:
                 feat, char_seq = cur_input
-                if feat == ('ccmp',):
-                    char_seq = char_seq.replace(' ', '')
+                char_seq = char_seq.replace(' ', '')
                 inputs.append(Glyph(
                     name=name,
                     features=feat,
