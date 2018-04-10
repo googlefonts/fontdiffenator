@@ -1,5 +1,5 @@
 """
-Flatten a font's GPOS kerning.
+Dump a font's GPOS kerning.
 """
 
 
@@ -11,7 +11,7 @@ def _kerning_lookup_indexes(ttfont):
     return None
 
 
-def _flatten_format1_subtable(table, results):
+def _flatten_pair_kerning(table, results):
     """Flatten pair on pair kerning"""
     seen = set(results)
     first_glyphs = {idx: g for idx, g in enumerate(table.Coverage.glyphs)}
@@ -28,7 +28,7 @@ def _flatten_format1_subtable(table, results):
                 seen.add(kern)
 
 
-def _flatten_format2_subtable(table, results):
+def _flatten_class_kerning(table, results):
     """Flatten class on class kerning"""
     seen = set(results)
     classes1 = _kern_class(table.ClassDef1.classDefs)
@@ -64,7 +64,7 @@ def _kern_class(class_definition):
     return classes
 
 
-def flatten_kerning(ttfont, glyph_map=None):
+def dump_kerning(ttfont, glyph_map=None):
 
     if 'GPOS' not in ttfont:
         raise Exception("Font doesn's have GPOS table")
@@ -78,10 +78,15 @@ def flatten_kerning(ttfont, glyph_map=None):
         lookup = ttfont['GPOS'].table.LookupList.Lookup[lookup_idx]
 
         for sub_table in lookup.SubTable:
-            if sub_table.Format == 1:
-                _flatten_format1_subtable(sub_table, kern_table)
-            if sub_table.Format == 2:
-                _flatten_format2_subtable(sub_table, kern_table)
+
+            if hasattr(sub_table, 'ExtSubTable'):
+                sub_table = sub_table.ExtSubTable
+
+            if hasattr(sub_table, 'PairSet'):
+                _flatten_pair_kerning(sub_table, kern_table)
+
+            if hasattr(sub_table, 'ClassDef2'):
+                _flatten_class_kerning(sub_table, kern_table)
 
     kern_table = [{'left': k[0], 'right': k[1], 'value': k[2]} for k in kern_table]
 
@@ -96,16 +101,3 @@ def flatten_kerning(ttfont, glyph_map=None):
                 pass
         return kern_table_decomped
     return kern_table
-
-
-if __name__ == '__main__':
-    from fontTools.ttLib import TTFont
-    from glyphs import glyph_map
-    f = TTFont('/Users/marc/Downloads/roboto-unhinted/Roboto-Regular.ttf')
-    # f = TTFont('/Users/marc/Documents/googlefonts/manual_font_cleaning/_privates/Roboto/master_ttf/Roboto-Regular.ttf')
-    g_map = glyph_map(f)
-    kern_tbl = flatten_kerning(f, g_map)
-    print kern_tbl[:20]
-
-    # for item in kern_tbl:
-    #     print item['left'].characters, item['right'].characters
