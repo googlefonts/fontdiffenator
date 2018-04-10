@@ -12,5 +12,7 @@ class ShapeDiffFinder(ShapeDiffFinder):
         if self.stats['untested']:
             self.stats['untested'] = [i[1] for i in self.stats['untested']]
         if self.stats['compared']:
-            self.stats['compared'] = [(i[1], i[0]) for i in self.stats['compared']]
-            
+            self.stats['compared'] = sorted(
+                [{'glyph': i[1], 'value': i[0]} for i in self.stats['compared']],
+                key=lambda k: k['value'], reverse=True
+            )

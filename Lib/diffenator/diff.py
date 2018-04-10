@@ -92,8 +92,7 @@ def diff_fonts(font_a_path, font_b_path, rendered_diffs=False):
         shape.find_area_diffs()
     shape.cleanup()
     # print shape_report['compared']
-    d['glyphs']['modified'] = sorted(shape_report['compared'],
-                                    key=lambda k: k[1], reverse=True)
+    d['glyphs']['modified'] = shape_report['compared']
     return d
 
 
