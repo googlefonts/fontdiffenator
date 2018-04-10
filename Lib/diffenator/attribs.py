@@ -126,10 +126,11 @@ def dump_attribs(font):
         if tbl_tag in font:
             for attr, converter in tble:
                 try:
-                    d = {}
-                    d['attrib'] = attr
-                    d['value'] = converter(getattr(font[tbl_tag], attr))
-                    d['table'] = tbl_tag
+                    d = {
+                        'attrib': attr,
+                        'value': converter(getattr(font[tbl_tag], attr)),
+                        'table': tbl_tag
+                    }
                     attribs.append(d)
                 except AttributeError:
                     logger.warn("Font {} Missing attrib {}".format(attr))
