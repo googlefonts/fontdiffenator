@@ -119,7 +119,7 @@ HEAD = [
 ]
 
 
-def table_attribs(font):
+def dump_attribs(font):
     attribs = []
     for tbl_tag, tble in zip(['OS/2', 'hhea', 'gasp', 'head'],
                              [OS2, HHEA, GASP, HEAD]):

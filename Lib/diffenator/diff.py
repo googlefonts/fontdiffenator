@@ -12,15 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import argparse
 import collections
-from ttxfont import TTXFont
 from fontTools.ttLib import TTFont
-from metrics import font_glyph_metrics
-from kerning import flatten_kerning
+from metrics import dump_glyph_metrics
+from kerning import dump_kerning
+from attribs import dump_attribs
+from marks import dump_marks
 from glyphs import glyph_map
+from collections import namedtuple
 import shape_diff
-import attribs
 
 
 DIFF_THRESH = 1057.5000000000025
@@ -59,27 +59,21 @@ def diff_fonts(font_a_path, font_b_path, rendered_diffs=False):
     glyph_map_a = glyph_map(font_a)
     glyph_map_b = glyph_map(font_b)
 
-    kern_a = flatten_kerning(font_a, glyph_map_a)
-    kern_b = flatten_kerning(font_b, glyph_map_b)
+    kerning = diff_kerning(font_a, font_b, glyph_map_a, glyph_map_b)
+    d['kern']['missing'] = kerning.missing
+    d['kern']['new'] = kerning.new
+    d['kern']['modified'] = kerning.modified
 
-    d['kern']['missing'] = subtract_kerns(kern_a, kern_b)
-    d['kern']['new'] = subtract_kerns(kern_b, kern_a)
-    d['kern']['modified'] = modified_kerns(kern_a, kern_b)
+    metrics = diff_metrics(font_a, font_b, glyph_map_a, glyph_map_b)
+    d['metrics']['modified'] = metrics.modified
 
-    # for anchor_cat in ('base_anchors', 'mark_anchors', 'class_anchors'):
-    #     anchors_a = getattr(font_a, anchor_cat)
-    #     anchors_b = getattr(font_b, anchor_cat)
+    marks = diff_marks(font_a, font_b, glyph_map_a, glyph_map_b)
+    d['marks']['new'] = marks.new
+    d['marks']['missing'] = marks.missing
+    d['marks']['modified'] = marks.modified
 
-    #     d[anchor_cat]['new'] = sorted(subtract(anchors_b, anchors_a, ['glyph', 'group']),
-    #                                 key=lambda k: k['glyph'])
-    #     d[anchor_cat]['missing'] = sorted(subtract(anchors_a, anchors_b, ['glyph', 'group']),
-    #                                     key=lambda k: k['glyph'])
-    #     d[anchor_cat]['modified'] = sorted(modified(anchors_a, anchors_b, ['glyph', 'group']),
-    #                                     key=lambda k: abs(k['x']) + abs(k['y']))
-
-    metrics_a = font_glyph_metrics(font_a, glyph_map_a)
-    metrics_b = font_glyph_metrics(font_b, glyph_map_b)
-    d['metrics']['modified'] = modified_metrics(metrics_a, metrics_b)
+    attribs = diff_attribs(font_a, font_b)
+    d['attribs']['modified'] = attribs.modified
 
     glyphset_a = [i for i in glyph_map_a.values()]
     glyphset_b = [i for i in glyph_map_b.values()]
@@ -98,127 +92,25 @@ def diff_fonts(font_a_path, font_b_path, rendered_diffs=False):
         shape.find_area_diffs()
     shape.cleanup()
     # print shape_report['compared']
-    d['glyphs']['modified_glyphs'] = sorted(shape_report['compared'],
+    d['glyphs']['modified'] = sorted(shape_report['compared'],
                                     key=lambda k: k[1], reverse=True)
-
-    # table attribs
-    attribs_a = attribs.table_attribs(font_a)
-    attribs_b = attribs.table_attribs(font_b)
-    d['attribs']['modified'] = modified(attribs_a, attribs_b, ['attrib', 'table'])
     return d
 
 
-def subtract(obj_a, obj_b, keys=None):
-    """Compare two lists of dicts and return a list of dicts which are
-    in obj_a but not in obj_b.
+def diff_kerning(ttfont_a, ttfont_b, glyph_map_a=None, glyph_map_b=None):
 
-    Keys are used to find matching dicts between the two lists.
+    kern_a = dump_kerning(ttfont_a, glyph_map_a)
+    kern_b = dump_kerning(ttfont_b, glyph_map_b)
 
-    >>> a = [
-            {'glyph': 'a', 'x': 30, 'y': 0},
-            {'glyph': 'b', 'x': 0, 'y': 10},
-            {'glyph': 'c', 'x': 50, 'y': 0},
-    ]
+    missing = _subtract_kerns(kern_a, kern_b)
+    new = _subtract_kerns(kern_b, kern_a)
+    modified = _modified_kerns(kern_a, kern_b)
 
-    >>> b = [
-            {'glyph': 'a', 'x': 100, 'y': 100},
-            {'glyph': 'b', 'x': 0, 'y': 0},
-    ]
-
-    >>> subtract(a, b, ['glyph'])
-    {'glyph': 'c', 'x': 50, 'y': 0}
+    Kern = namedtuple('KernDiff', ['new', 'missing', 'modified'])
+    return Kern(new, missing, modified)
 
 
-    If no keys are given, dictionaries are compared in the similar manner
-    as the __eq__ method.
-
-    >>> a[0] == b[0]
-    False
-    >>> subtract(a, b)
-    [
-    {'glyph': 'a', 'x': 30, 'y': 0},
-    {'glyph': 'c', 'x': 50, 'y': 0},
-    ] 
-
-    """
-    mod = []
-    if keys:
-        hash_a = _hash(obj_a, keys)
-        hash_b = _hash(obj_b, keys)
-    else:
-        hash_a = _hash(obj_a, obj_a[0].keys())
-        hash_b = _hash(obj_b, obj_b[0].keys())
-    return [hash_a[i] for i in hash_a if i not in hash_b]
-
-
-def modified(obj_a, obj_b, keys):
-    """Compare two lists of dicts and return a new list of dicts which
-    contain the numerical difference between matching dicts.
-
-    Keys are used to find matching dicts between the two lists.
-
-    a = [
-        {'glyph': 'a', 'x': 30, 'y': 0},
-        {'glyph': 'b', 'x': 0, 'y': 10},
-        {'glyph': 'c', 'x': 50, 'y': 0},
-    ]
-
-    b = [
-        {'glyph': 'a', 'x': 100, 'y': 100},
-        {'glyph': 'b', 'x': 0, 'y': 0},
-    ]
-
-    >>> modified(a, b, ['glyph'])
-    [{'glyph': 'a': 'x': 70, 'y': 0}]
-    """
-    mod = []
-    hash_a = _hash(obj_a, keys)
-    hash_b = _hash(obj_b, keys)
-
-    shared_keys = set(hash_a) & set(hash_b)
-    for key in shared_keys:
-        if hash_a[key] != hash_b[key]:
-            mod.append(_difference_dict(hash_a[key], hash_b[key]))
-    return mod
-
-
-def _hash(obj, keys):
-    a = {}
-    for item in obj:
-        key = _build_prehash(item, keys)
-        a[key] = item
-    return a
-
-
-def _build_prehash(obj, keys):
-    h = []
-    for key in keys:
-        if isinstance(obj[key], list):
-            key = tuple(obj[key])
-            h.append(key)
-        else:
-            h.append(obj[key])
-    return tuple(h)
-
-
-def _difference_dict(dict_a, dict_b):
-    """Get numerical differences between two python dicts
-
-    >>> a = {'a': 100, 'b': 200}
-    >>> b = {'a': 30, 'b': 50}
-    >>> difference_dict(a, b)
-    {'a': 70, 'b': 150}
-    """
-    d = {}
-    for key in dict_a:
-        if isinstance(dict_a[key], (int, float)):
-            d[key] = dict_b[key] - dict_a[key]
-        else:
-            d[key] = dict_a[key]
-    return d
-
-
-def subtract_kerns(kern_a, kern_b):
+def _subtract_kerns(kern_a, kern_b):
 
     kern_a_h = {i['left'].kkey + i['right'].kkey: i for i in kern_a}
     kern_b_h = {i['left'].kkey + i['right'].kkey: i for i in kern_b}
@@ -232,7 +124,7 @@ def subtract_kerns(kern_a, kern_b):
     return sorted(table, key=lambda k: abs(k['value']), reverse=True)
 
 
-def modified_kerns(kern_a, kern_b):
+def _modified_kerns(kern_a, kern_b):
 
     kern_a_h = {i['left'].kkey + i['right'].kkey: i for i in kern_a}
     kern_b_h = {i['left'].kkey + i['right'].kkey: i for i in kern_b}
@@ -248,7 +140,17 @@ def modified_kerns(kern_a, kern_b):
     return sorted(table, key=lambda k: abs(k['value']), reverse=True)
 
 
-def modified_metrics(metrics_a, metrics_b):
+def diff_metrics(ttfont_a, ttfont_b, glyph_map_a, glyph_map_b):
+    metrics_a = dump_glyph_metrics(ttfont_a, glyph_map_a)
+    metrics_b = dump_glyph_metrics(ttfont_b, glyph_map_b)
+
+    modified = _modified_metrics(metrics_a, metrics_b)
+
+    Metrics = namedtuple('Metrics', ['modified'])
+    return Metrics(modified)
+
+
+def _modified_metrics(metrics_a, metrics_b):
 
     metrics_a_h = {i['glyph'].kkey: i for i in metrics_a}
     metrics_b_h = {i['glyph'].kkey: i for i in metrics_b}
@@ -266,6 +168,35 @@ def modified_metrics(metrics_a, metrics_b):
     return sorted(table, key=lambda k: abs(k['adv']), reverse=True)
 
 
+def diff_attribs(ttfont_a, ttfont_b):
+    attribs_a = dump_attribs(ttfont_a)
+    attribs_b = dump_attribs(ttfont_b)
+
+    modified = _modified_attribs(attribs_a, attribs_b)
+
+    Attribs = namedtuple('Attribs', ['modified'])
+    return Attribs(modified)
+
+
+def _modified_attribs(attribs_a, attribs_b):
+
+    attribs_a_h = {i['attrib']: i for i in attribs_a}
+    attribs_b_h = {i['attrib']: i for i in attribs_b}
+
+    shared = set(attribs_a_h.keys()) & set(attribs_b_h.keys())
+
+    table = []
+    for k in shared:
+        if attribs_a_h[k] != attribs_b_h[k]:
+            table.append({
+                "attrib": attribs_a_h[k]['attrib'],
+                "table": attribs_a_h[k]['table'],
+                "value_a": attribs_a_h[k]['value'],
+                "value_b": attribs_b_h[k]['value']
+            })
+    return table
+
+
 def subtract_glyphs(glyphset_a, glyphset_b):
     glyphset_a_h = {i.kkey: i for i in glyphset_a}
     glyphset_b_h = {i.kkey: i for i in glyphset_b}
@@ -276,3 +207,50 @@ def subtract_glyphs(glyphset_a, glyphset_b):
     for k in missing:
         table.append(glyphset_a_h[k])
     return sorted(table, key=lambda k: k.name)
+
+
+def diff_marks(ttfont_a, ttfont_b, glyph_map_a, glyph_map_b):
+    marks_a = dump_marks(ttfont_a, glyph_map_a)
+    marks_b = dump_marks(ttfont_b, glyph_map_b)
+
+    missing = _subtract_marks(marks_a, marks_b)
+    new = _subtract_marks(marks_b, marks_a)
+    modified = _modified_marks(marks_a, marks_b)
+
+    Marks = namedtuple('Marks', ['new', 'missing', 'modified'])
+    return Marks(new, missing, modified)
+
+
+def _subtract_marks(marks_a, marks_b):
+
+    marks_a_h = {i['base_glyph'].kkey+i['mark_glyph'].kkey: i for i in marks_a}
+    marks_b_h = {i['base_glyph'].kkey+i['mark_glyph'].kkey: i for i in marks_b}
+
+    missing = set(marks_a_h.keys()) - set(marks_b_h.keys())
+
+    table = []
+    for k in missing:
+        table.append(marks_a_h[k])
+    return sorted(table, key=lambda k: k['base_glyph'].name)
+
+
+def _modified_marks(marks_a, marks_b):
+
+    marks_a_h = {i['base_glyph'].kkey+i['mark_glyph'].kkey: i for i in marks_a}
+    marks_b_h = {i['base_glyph'].kkey+i['mark_glyph'].kkey: i for i in marks_b}
+
+    shared = set(marks_a_h.keys()) & set(marks_b_h.keys())
+
+    table = []
+    for k in shared:
+        offset_a_x = marks_a_h[k]['mark_x'] - marks_a_h[k]['mark_x']
+        offset_a_y = marks_a_h[k]['mark_y'] - marks_a_h[k]['mark_y']
+        offset_b_x = marks_b_h[k]['mark_x'] - marks_b_h[k]['mark_x']
+        offset_b_y = marks_b_h[k]['mark_y'] - marks_b_h[k]['mark_y']
+
+        diff_x = offset_a_x != offset_b_x
+        diff_y = offset_a_y != offset_b_y
+
+        if diff_x or diff_y:
+            table.append(marks_a_h[k])
+    return table

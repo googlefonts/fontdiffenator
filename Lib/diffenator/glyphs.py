@@ -8,7 +8,6 @@ A better approach may be to assign puas to unencoded glyphs.
 from fontTools.ttLib import TTFont
 from fontTools.misc.py23 import unichr
 from nototools.hb_input import HbInputGenerator
-from collections import namedtuple
 
 
 class Glyph:
