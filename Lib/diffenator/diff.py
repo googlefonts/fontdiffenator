@@ -30,30 +30,8 @@ DIFF_THRESH = 1057.5000000000025
 
 
 def diff_fonts(font_a_path, font_b_path, rendered_diffs=False):
-    """
-    Compare two fonts against each other.
-
-    Most objects have been derived and improved from Nototools. Hopefully the diff
-    objects can be sent back to the nototools upstream upon acceptance of the gf
-    engineering team.
-
-    Shapes:
-    Half the dot of an 'i' from our collection's thinnest font, Montserrat
-    Thin is allowed.
-
-    Metrics:
-    20 units is the maximum allowed difference.
-
-    Kerning:
-    20 units is the maxium allowed difference
-
-    Mark positioning:
-    20 units is the maximum allowed difference
-
-    GSUB:
-    No feature should be missing
-
-    """
+    """Compare two fonts and return the difference for:
+    Kerning, Marks, Attributes, Metrics and Input sequences"""
     d = collections.defaultdict(dict)
 
     font_a = TTFont(font_a_path)
