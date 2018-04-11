@@ -32,7 +32,7 @@ def _timestamp(epoch):
 
     https://github.com/fonttools/fonttools/issues/99"""
     d = datetime.datetime.fromtimestamp(epoch) - datetime.timedelta(days=24107)
-    return d
+    return d.strftime('%Y/%m/%d %H:%M:%S')
 
 
 OS2 = [
