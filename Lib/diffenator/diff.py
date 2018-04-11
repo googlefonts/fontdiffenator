@@ -237,8 +237,8 @@ def _subtract_glyphs(glyphset_a, glyphset_b):
 
     table = []
     for k in missing:
-        table.append(glyphset_a_h[k])
-    return sorted(table, key=lambda k: k.name)
+        table.append({'glyph': glyphset_a_h[k]})
+    return sorted(table, key=lambda k: k['glyph'].name)
 
 
 def diff_marks(ttfont_a, ttfont_b, glyph_map_a, glyph_map_b):
