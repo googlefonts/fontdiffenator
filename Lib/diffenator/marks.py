@@ -1,5 +1,7 @@
 """Dump a font's mark and mkmk feature"""
+import logging
 
+logger = logging.getLogger(__name__)
 
 def mark_lookup_idxs(ttfont):
     for feat in ttfont['GPOS'].table.FeatureList.FeatureRecord:
@@ -72,11 +74,13 @@ def dump_marks(ttfont, glyph_map=None):
     ]
     """
     if 'GPOS' not in ttfont.keys():
-        raise Exception('No GPOS table')
+        logger.warning("Font doesn't have GPOS table. No marks found")
+        return []
     gpos = ttfont['GPOS']
     lookup_idxs = mark_lookup_idxs(ttfont)
     if not lookup_idxs:
-        raise Exception('No mark feature')
+        logger.warning("Font doesn't have a GPOS mark feature")
+        return []
 
     table = []
     for idx in lookup_idxs:

@@ -1,4 +1,7 @@
 """Dump a font's GPOS kerning."""
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def _kerning_lookup_indexes(ttfont):
@@ -65,11 +68,13 @@ def _kern_class(class_definition):
 def dump_kerning(ttfont, glyph_map=None):
 
     if 'GPOS' not in ttfont:
-        raise Exception("Font doesn's have GPOS table")
+        logger.warning("Font doesn't have GPOS table. No kerns found")
+        return []
 
     kerning_lookup_indexes = _kerning_lookup_indexes(ttfont)
     if not kerning_lookup_indexes:
-        raise Exception("Font doesn't have a GPOS kern feature")
+        logger.warning("Font doesn't have a GPOS kern feature")
+        return []
 
     kern_table = []
     for lookup_idx in kerning_lookup_indexes:
