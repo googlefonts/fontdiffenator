@@ -237,7 +237,8 @@ def _subtract_glyphs(glyphset_a, glyphset_b):
 
     table = []
     for k in missing:
-        table.append({'glyph': glyphset_a_h[k]})
+        if glyphset_a_h[k].characters:
+            table.append({'glyph': glyphset_a_h[k]})
     return sorted(table, key=lambda k: k['glyph'].name)
 
 
