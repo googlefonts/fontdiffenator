@@ -60,7 +60,7 @@ def _flatten_format1_subtable(sub_table):
     return table
 
 
-def dump_marks(ttfont, glyph_map=None):
+def dump_marks(ttfont, glyph_map=None, use_xmin=True):
     """Return a list of base to mark anchor attachments
 
     :rtype: [
@@ -72,6 +72,10 @@ def dump_marks(ttfont, glyph_map=None):
          'base_x': int, 'base_y':int,
          mark_x': int, mark_y: int,}
     ]
+
+    if use_xmin is enabled. Every anchor's x coord will be normalised using
+    the glyphs closest point in the x axis; instead of using the glyph's
+    metrics.
     """
     if 'GPOS' not in ttfont.keys():
         logger.warning("Font doesn't have GPOS table. No marks found")
@@ -91,9 +95,15 @@ def dump_marks(ttfont, glyph_map=None):
                 table += _flatten_format1_subtable(sub_table)
             # TODO (M Foley) add LookupType 5 marks to lig
 
+    # normalise anchor positions against the glyph's closest point
+    if use_xmin:
+        metrics = ttfont['hmtx'].metrics
+        for mark in table:
+            mark['base_x'] = metrics[mark['base_glyph']][1] - mark['base_x']
+            mark['mark_x'] = metrics[mark['mark_glyph']][1] - mark['mark_x']
+
     if glyph_map:
         for row in table:
             row['base_glyph'] = glyph_map[row['base_glyph']]
             row['mark_glyph'] = glyph_map[row['mark_glyph']]
-
     return table
