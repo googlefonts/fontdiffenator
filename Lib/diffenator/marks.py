@@ -87,8 +87,9 @@ def dump_marks(ttfont, glyph_map=None):
         lookup = gpos.table.LookupList.Lookup[idx]
 
         for sub_table in lookup.SubTable:
-            if sub_table.Format == 1:
+            if sub_table.Format == 1 and sub_table.LookupType == 4:
                 table += _flatten_format1_subtable(sub_table)
+            # TODO (M Foley) add LookupType 5 marks to lig
 
     if glyph_map:
         for row in table:
