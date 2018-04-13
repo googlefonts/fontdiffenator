@@ -167,9 +167,10 @@ def _modified_kerns(kern_a, kern_b):
     for k in shared:
         if kern_a_h[k]['value'] != kern_b_h[k]['value']:
             kern_diff = kern_a_h[k]
-            kern_diff['value'] = kern_a_h[k]['value'] - kern_b_h[k]['value']
+            kern_diff['value_a'] = kern_diff.pop('value')
+            kern_diff['value_b'] = kern_b_h[k]['value']
             table.append(kern_diff)
-    return sorted(table, key=lambda k: abs(k['value']), reverse=True)
+    return sorted(table, key=lambda k: abs(k['value_a'] - k['value_b']), reverse=True)
 
 
 def diff_metrics(ttfont_a, ttfont_b, glyph_map_a, glyph_map_b):
@@ -285,5 +286,12 @@ def _modified_marks(marks_a, marks_b):
         diff_y = offset_a_y != offset_b_y
 
         if diff_x or diff_y:
-            table.append(marks_a_h[k])
+            mark = marks_a_h[k]
+            mark['offset_a_x'] = offset_a_x
+            mark['offset_a_y'] = offset_a_y
+            mark['offset_b_x'] = offset_b_x
+            mark['offset_b_y'] = offset_b_y
+            for pos in ['base_x', 'base_y', 'mark_x', 'mark_y']:
+                mark.pop(pos)
+            table.append(mark)
     return table
