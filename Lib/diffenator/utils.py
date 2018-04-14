@@ -3,7 +3,6 @@ import os
 
 def cli_reporter(font_a, font_b, comp_data, output_lines=10):
     """Generate a report wip"""
-    # TODO (m4rc1e): turn into decent report with good formatting.
     print '%s vs %s' % (os.path.basename(font_a), os.path.basename(font_b))
     for category in comp_data:
         for sub_category in comp_data[category]:
@@ -53,7 +52,8 @@ def cli_reporter(font_a, font_b, comp_data, output_lines=10):
                         ['id', 'string_a', 'string_b'],
                         clip_col=True
                     )
-                elif category == 'names' and (sub_category == 'new' or sub_category == 'missing'):
+                elif category == 'names' and (sub_category == 'new' or \
+                                              sub_category == 'missing'):
                     print dict_cli_table(
                         comp_data[category][sub_category][:output_lines],
                         ['id', 'string'],

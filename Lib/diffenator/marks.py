@@ -74,9 +74,9 @@ def dump_marks(ttfont, glyph_map=None, ignore_metrics=True):
          mark_x': int, mark_y: int,}
     ]
 
-    if ignore_metrics is enabled. Every anchor's x coord will be normalised using
-    the glyphs closest point in the x axis; instead of using the glyph's
-    metrics.
+    if ignore_metrics is enabled. Every anchor's x coord will be normalised
+    using the glyph's closest point in the x axis; instead of using the
+    glyph's metrics.
     """
     if 'GPOS' not in ttfont.keys():
         logger.warning("Font doesn't have GPOS table. No marks found")
@@ -96,7 +96,6 @@ def dump_marks(ttfont, glyph_map=None, ignore_metrics=True):
                 table += _flatten_format1_subtable(sub_table)
             # TODO (M Foley) add LookupType 5 marks to lig
 
-    # normalise anchor positions against the glyph's closest point
     if ignore_metrics:
         metrics = ttfont['hmtx'].metrics
         glyf = ttfont['glyf']

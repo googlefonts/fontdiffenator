@@ -2,8 +2,7 @@
 Use Nototool's hbinput generator to get every accesible character
 in a font.
 
-TODO (M Foley) This approach is too slow on complex multilingual families
-A better approach may be to assign puas to unencoded glyphs.
+TODO (M Foley) HBInput generator is too slow on complex non-Latin fonts
 """
 from fontTools.misc.py23 import unichr
 from nototools.hb_input import HbInputGenerator

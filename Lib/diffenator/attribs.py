@@ -1,5 +1,5 @@
 """
-Get a list of font attribs
+Dump a font's attribs
 """
 from fontTools.ttLib import TTFont
 import datetime
