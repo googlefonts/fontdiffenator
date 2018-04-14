@@ -2,21 +2,29 @@
 
 Compare two fonts against each other.
 
-Still extreme wip.
+## Features
+
+**Glyph matching**
+Most differs will only compare glyphs if they have matching names. Diffenator matches glyphs by creating a key consisting of the unicodes and OT features used to produce the glyph. This allows us to make comparisons where font A uses AGl names whilst font B uses uniXXXX names.
+
+**Mark positioning**
+Marks coordinates are related to the glyph's outlines; not the metrics.
+
+**Kerning**
+Pair and class to class kerning are supported. The class kerns get flattened into pairs. Unfortunately this approach is very slow.
 
 
 ## Limitations
 
 - gsub_diff: Cannot parse gsub rules LookupTypes 5, 6, 8
-- Vertical metrics tests missing
-- Browser rendering tests missing
+- mkmk still needs implementing
 
 
 ## Future work
 
 ### Comparing OpenType features
 
-The developers of fontTools are working on [otlLib](https://github.com/fonttools/fonttools/issues/468) which will make working with OpenType data much easier. Our current solution uses the approach implemented in nototools. We ttxn the gpos and gsub font tables then use regular expressions to parse the data. We should refactor once otlLib can unbuild OpenType features.
+The developers of fontTools are working on [otlLib](https://github.com/fonttools/fonttools/issues/468) which will make working with GPOS and GSUB tables much easier.
 
 
 ## Installation
@@ -27,20 +35,13 @@ $ pip install -r requirements.txt
 $ pip install . # -e . for dev installation
 ```
 
-Diffenator relies on Harfbuzz. Install it using homebrew.
-
-```
-brew install --with-cairo harfbuzz cairo
-```
-
-
-### CLI usage (Google fonts):
+## Usage:
 
 ```
 $ diffenator ./path/to/font_a.ttf ./path/to/font_b.ttf
 ```
 
-### Python (Google fonts):
+## Python (Google fonts):
 
 ```
 >>> from diffenator import diff_fonts
