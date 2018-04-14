@@ -22,13 +22,28 @@ from marks import dump_marks
 from inputgen import glyph_map
 from collections import namedtuple
 import shape_diff
-
+import time
 
 __all__ = ['diff_fonts', 'diff_metrics', 'diff_kerning',
            'diff_marks', 'diff_attribs', 'diff_glyphs']
 
 
 DIFF_THRESH = 1057.5000000000025
+
+
+def timer(method):
+    def timed(*args, **kw):
+        ts = time.time()
+        result = method(*args, **kw)
+        te = time.time()
+        if 'log_time' in kw:
+            name = kw.get('log_name', method.__name__.upper())
+            kw['log_time'][name] = int((te - ts) * 1000)
+        else:
+            print '%r  %2.2f ms' % \
+                  (method.__name__, (te - ts) * 1000)
+        return result
+    return timed
 
 
 def diff_fonts(font_a_path, font_b_path, rendered_diffs=False):
@@ -73,6 +88,7 @@ def diff_fonts(font_a_path, font_b_path, rendered_diffs=False):
     return d
 
 
+@timer
 def diff_nametable(ttfont_a, ttfont_b):
     nametable_a = dump_nametable(ttfont_a)
     nametable_b = dump_nametable(ttfont_b)
@@ -117,6 +133,7 @@ def _modified_names(nametable_a, nametable_b):
     return table
 
 
+@timer
 def diff_glyphs(glyph_map_a, glyph_map_b):
     # TODO (M FOLEY) work shape diff in here
     glyphset_a = [i for i in glyph_map_a.values()]
@@ -129,6 +146,7 @@ def diff_glyphs(glyph_map_a, glyph_map_b):
     return Glyphs(new, missing)
 
 
+@timer
 def diff_kerning(ttfont_a, ttfont_b, glyph_map_a=None, glyph_map_b=None):
 
     kern_a = dump_kerning(ttfont_a, glyph_map_a)
@@ -172,6 +190,7 @@ def _modified_kerns(kern_a, kern_b):
     return sorted(table, key=lambda k: abs(k['diff']), reverse=True)
 
 
+@timer
 def diff_metrics(ttfont_a, ttfont_b, glyph_map_a, glyph_map_b):
     metrics_a = dump_glyph_metrics(ttfont_a, glyph_map_a)
     metrics_b = dump_glyph_metrics(ttfont_b, glyph_map_b)
@@ -200,6 +219,7 @@ def _modified_metrics(metrics_a, metrics_b):
     return sorted(table, key=lambda k: k['diff_adv'], reverse=True)
 
 
+@timer
 def diff_attribs(ttfont_a, ttfont_b):
     attribs_a = dump_attribs(ttfont_a)
     attribs_b = dump_attribs(ttfont_b)
@@ -242,6 +262,7 @@ def _subtract_glyphs(glyphset_a, glyphset_b):
     return sorted(table, key=lambda k: k['glyph'].name)
 
 
+@timer
 def diff_marks(ttfont_a, ttfont_b, glyph_map_a, glyph_map_b):
     marks_a = dump_marks(ttfont_a, glyph_map_a)
     marks_b = dump_marks(ttfont_b, glyph_map_b)
