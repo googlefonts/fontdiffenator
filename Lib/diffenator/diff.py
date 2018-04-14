@@ -167,10 +167,9 @@ def _modified_kerns(kern_a, kern_b):
     for k in shared:
         if kern_a_h[k]['value'] != kern_b_h[k]['value']:
             kern_diff = kern_a_h[k]
-            kern_diff['value_a'] = kern_diff.pop('value')
-            kern_diff['value_b'] = kern_b_h[k]['value']
+            kern_diff['diff'] = kern_b_h[k]['value'] - kern_a_h[k]['value']
             table.append(kern_diff)
-    return sorted(table, key=lambda k: abs(k['value_a'] - k['value_b']), reverse=True)
+    return sorted(table, key=lambda k: abs(k['diff']), reverse=True)
 
 
 def diff_metrics(ttfont_a, ttfont_b, glyph_map_a, glyph_map_b):
@@ -193,12 +192,12 @@ def _modified_metrics(metrics_a, metrics_b):
     table = []
     for k in shared:
         if metrics_a_h[k]['adv'] != metrics_b_h[k]['adv']:
-            metrics_diff = metrics_a_h[k]
-            metrics_diff['adv'] = metrics_a_h[k]['adv'] - metrics_b_h[k]['adv']
-            metrics_diff['lsb'] = metrics_a_h[k]['lsb'] - metrics_b_h[k]['lsb']
-            metrics_diff['rsb'] = metrics_a_h[k]['rsb'] - metrics_b_h[k]['rsb']
-            table.append(metrics_diff)
-    return sorted(table, key=lambda k: abs(k['adv']), reverse=True)
+            metrics = metrics_a_h[k]
+            metrics['diff_adv'] = metrics_b_h[k]['adv'] - metrics_a_h[k]['adv']
+            metrics['diff_lsb'] = metrics_b_h[k]['lsb'] - metrics_b_h[k]['lsb']
+            metrics['diff_rsb'] = metrics_b_h[k]['rsb'] - metrics_b_h[k]['rsb']
+            table.append(metrics)
+    return sorted(table, key=lambda k: k['diff_adv'], reverse=True)
 
 
 def diff_attribs(ttfont_a, ttfont_b):
@@ -287,11 +286,9 @@ def _modified_marks(marks_a, marks_b):
 
         if diff_x or diff_y:
             mark = marks_a_h[k]
-            mark['offset_a_x'] = offset_a_x
-            mark['offset_a_y'] = offset_a_y
-            mark['offset_b_x'] = offset_b_x
-            mark['offset_b_y'] = offset_b_y
+            mark['diff_x'] = offset_b_x - offset_a_x
+            mark['diff_y'] = offset_b_y - offset_a_y
             for pos in ['base_x', 'base_y', 'mark_x', 'mark_y']:
                 mark.pop(pos)
             table.append(mark)
-    return table
+    return sorted(table, key=lambda k: k['base_glyph'].name)

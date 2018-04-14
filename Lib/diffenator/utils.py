@@ -19,12 +19,12 @@ def cli_reporter(font_a, font_b, comp_data, output_lines=10):
                 elif category == 'metrics' and sub_category == 'modified':
                     print dict_cli_table(
                         comp_data[category][sub_category][:output_lines],
-                        ['glyph', 'adv', 'lsb', 'rsb']
+                        ['glyph', 'diff_adv', 'diff_lsb', 'diff_rsb']
                     )
                 elif category == 'kern' and sub_category == 'modified':
                     print dict_cli_table(
                         comp_data[category][sub_category][:output_lines],
-                        ['left', 'right', 'value_a', 'value_b']
+                        ['left', 'right', 'diff']
                     )
                 elif category == 'kern':
                     print dict_cli_table(
@@ -34,8 +34,7 @@ def cli_reporter(font_a, font_b, comp_data, output_lines=10):
                 elif category == 'marks' and sub_category == 'modified':
                     print dict_cli_table(
                         comp_data[category][sub_category][:output_lines],
-                        ['base_glyph', 'mark_glyph', 'offset_a_x',
-                         'offset_a_y', 'offset_b_x', 'offset_b_y']
+                        ['base_glyph', 'mark_glyph', 'diff_x', 'diff_y']
                     )
                 elif category == 'marks':
                     print dict_cli_table(

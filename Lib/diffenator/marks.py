@@ -3,6 +3,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 def mark_lookup_idxs(ttfont):
     for feat in ttfont['GPOS'].table.FeatureList.FeatureRecord:
         if feat.FeatureTag == 'mark':
@@ -60,7 +61,7 @@ def _flatten_format1_subtable(sub_table):
     return table
 
 
-def dump_marks(ttfont, glyph_map=None, use_xmin=True):
+def dump_marks(ttfont, glyph_map=None, ignore_metrics=True):
     """Return a list of base to mark anchor attachments
 
     :rtype: [
@@ -73,7 +74,7 @@ def dump_marks(ttfont, glyph_map=None, use_xmin=True):
          mark_x': int, mark_y: int,}
     ]
 
-    if use_xmin is enabled. Every anchor's x coord will be normalised using
+    if ignore_metrics is enabled. Every anchor's x coord will be normalised using
     the glyphs closest point in the x axis; instead of using the glyph's
     metrics.
     """
@@ -96,11 +97,15 @@ def dump_marks(ttfont, glyph_map=None, use_xmin=True):
             # TODO (M Foley) add LookupType 5 marks to lig
 
     # normalise anchor positions against the glyph's closest point
-    if use_xmin:
+    if ignore_metrics:
         metrics = ttfont['hmtx'].metrics
+        glyf = ttfont['glyf']
         for mark in table:
             mark['base_x'] = metrics[mark['base_glyph']][1] - mark['base_x']
             mark['mark_x'] = metrics[mark['mark_glyph']][1] - mark['mark_x']
+
+            mark['base_y'] = glyf[mark['base_glyph']].yMin - mark['base_y']
+            mark['mark_y'] = glyf[mark['mark_glyph']].yMin - mark['mark_y']
 
     if glyph_map:
         for row in table:
