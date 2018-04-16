@@ -18,7 +18,7 @@ from metrics import dump_glyph_metrics
 from kerning import dump_kerning
 from attribs import dump_attribs
 from names import dump_nametable
-from marks import dump_marks
+from marks import DumpMarks
 from inputgen import glyph_map
 from collections import namedtuple
 import shape_diff
@@ -264,12 +264,12 @@ def _subtract_glyphs(glyphset_a, glyphset_b):
 
 @timer
 def diff_marks(ttfont_a, ttfont_b, glyph_map_a, glyph_map_b):
-    marks_a = dump_marks(ttfont_a, glyph_map_a)
-    marks_b = dump_marks(ttfont_b, glyph_map_b)
+    marks_a = DumpMarks(ttfont_a)
+    marks_b = DumpMarks(ttfont_b)
 
-    missing = _subtract_marks(marks_a, marks_b)
-    new = _subtract_marks(marks_b, marks_a)
-    modified = _modified_marks(marks_a, marks_b)
+    missing = _subtract_marks(marks_a.base_table, marks_b.base_table)
+    new = _subtract_marks(marks_b.base_table, marks_a.base_table)
+    modified = _modified_marks(marks_a.base_table, marks_b.base_table)
 
     Marks = namedtuple('Marks', ['new', 'missing', 'modified'])
     return Marks(new, missing, modified)
@@ -277,21 +277,27 @@ def diff_marks(ttfont_a, ttfont_b, glyph_map_a, glyph_map_b):
 
 def _subtract_marks(marks_a, marks_b):
 
-    marks_a_h = {i['base_glyph'].kkey+i['mark_glyph'].kkey: i for i in marks_a}
-    marks_b_h = {i['base_glyph'].kkey+i['mark_glyph'].kkey: i for i in marks_b}
+    # marks_a_h = {i['base_glyph'].kkey+i['mark_glyph'].kkey: i for i in marks_a}
+    # marks_b_h = {i['base_glyph'].kkey+i['mark_glyph'].kkey: i for i in marks_b}
+    marks_a_h = {i['base_glyph']: i for i in marks_a}
+    marks_b_h = {i['base_glyph']: i for i in marks_b}
 
     missing = set(marks_a_h.keys()) - set(marks_b_h.keys())
 
     table = []
     for k in missing:
         table.append(marks_a_h[k])
-    return sorted(table, key=lambda k: k['base_glyph'].name)
+    # return sorted(table, key=lambda k: k['base_glyph'].name)
+    return sorted(table, key=lambda k: k['base_glyph'])
 
 
 def _modified_marks(marks_a, marks_b):
 
-    marks_a_h = {i['base_glyph'].kkey+i['mark_glyph'].kkey: i for i in marks_a}
-    marks_b_h = {i['base_glyph'].kkey+i['mark_glyph'].kkey: i for i in marks_b}
+    # marks_a_h = {i['base_glyph'].kkey+i['mark_glyph'].kkey: i for i in marks_a}
+    # marks_b_h = {i['base_glyph'].kkey+i['mark_glyph'].kkey: i for i in marks_b}
+
+    marks_a_h = {i['base_glyph']: i for i in marks_a}
+    marks_b_h = {i['base_glyph']: i for i in marks_b}
 
     shared = set(marks_a_h.keys()) & set(marks_b_h.keys())
 
@@ -312,4 +318,5 @@ def _modified_marks(marks_a, marks_b):
             for pos in ['base_x', 'base_y', 'mark_x', 'mark_y']:
                 mark.pop(pos)
             table.append(mark)
-    return sorted(table, key=lambda k: k['base_glyph'].name)
+    return sorted(table, key=lambda k: k['base_glyph'])
+    # return sorted(table, key=lambda k: k['base_glyph'].name)

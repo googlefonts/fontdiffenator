@@ -1,113 +1,155 @@
-"""Dump a font's mark and mkmk feature"""
-import logging
+"""Dump a font's mark and mkmk feature
 
-logger = logging.getLogger(__name__)
-
-
-def mark_lookup_idxs(ttfont):
-    for feat in ttfont['GPOS'].table.FeatureList.FeatureRecord:
-        if feat.FeatureTag == 'mark':
-            return feat.Feature.LookupListIndex
-    return None
+TODO (M FOLEY) add mkmk feature"""
 
 
-def base_anchors(glyph_list, anchors_list):
-    glyphs = {}
+class DumpMarks:
+    def __init__(self, font):
+        self._font = font
+        self._lookups = self._get_lookups()
+        self._base = []
+        self._base_anchors = []
+        self._mark_anchors = []
+        self._marks = []
+        self._get_groups()
+        self._base_table = self._gen_base_table()
+        self._mark_table = self._gen_mark_table()
 
-    for glyph, anchors in zip(glyph_list, anchors_list):
-        if glyph not in glyphs:
-            glyphs[glyph] = {}
-        for idx, anchor in enumerate(anchors.BaseAnchor):
-            glyphs[glyph][idx] = {'name': glyph,
-                                  'x': anchor.XCoordinate,
-                                  'y': anchor.YCoordinate}
-    return glyphs
+    @property
+    def base_groups(self):
+        return self._base
 
+    @property
+    def mark_groups(self):
+        return self._marks
 
-def mark_anchors(glyph_list, anchors_list):
-    glyphs = {}
-    for glyph, anchor in zip(glyph_list, anchors_list):
-        if anchor.Class not in glyphs:
-            glyphs[anchor.Class] = []
-        glyphs[anchor.Class].append({'name': glyph,
-                                     'x': anchor.MarkAnchor.XCoordinate,
-                                     'y': anchor.MarkAnchor.YCoordinate})
+    @property
+    def base_table(self):
+        return self._base_table
 
-    return glyphs
+    @property
+    def mark_table(self):
+        return self._mark_table
 
+    def flatten_groups(self):
+        pass
 
-def _flatten_format1_subtable(sub_table):
-    base_glyphs = base_anchors(sub_table.BaseCoverage.glyphs,
-                               sub_table.BaseArray.BaseRecord)
-    mark_glyphs = mark_anchors(sub_table.MarkCoverage.glyphs,
-                               sub_table.MarkArray.MarkRecord)
+    @property
+    def base_anchors(self):
+        if not self._base_anchors:
+            self._base_anchors = self._ungroup_anchors(self._base)
+        return self._base_anchors
 
-    table = []
-    for base_glyph in base_glyphs:
-        for anchor_class in base_glyphs[base_glyph]:
+    @property
+    def mark_anchors(self):
+        if not self._mark_anchors:
+            self._mark_anchors = self._ungroup_anchors(self._marks)
+        return self._mark_anchors
 
-            for mark in mark_glyphs[anchor_class]:
-                b_glyph = base_glyphs[base_glyph][anchor_class]
-                m_glyph = mark
+    def _ungroup_anchors(self, anchors_group):
+        anchors = []
+        for lookup in anchors_group:
+            for idx in lookup:
+                anchors += lookup[idx]
+        return anchors
 
-                table.append({
-                    'base_glyph': b_glyph['name'],
-                    'mark_glyph': m_glyph['name'],
-                    'mark_x': m_glyph['x'],
-                    'mark_y': m_glyph['y'],
-                    'base_x': b_glyph['x'],
-                    'base_y': b_glyph['y']
+    def _get_lookups(self):
+        """Return the lookups used for the mark feature"""
+        gpos = self._font['GPOS']
+        for feat in gpos.table.FeatureList.FeatureRecord:
+            if feat.FeatureTag == 'mark':
+                lookup_idxs = feat.Feature.LookupListIndex
+        lookups = []
+        for idx in lookup_idxs:
+            lookups.append(gpos.table.LookupList.Lookup[idx])
+        return lookups
+
+    def _get_groups(self):
+        for lookup in self._lookups:
+            for sub_table in lookup.SubTable:
+                if sub_table.Format == 1 and sub_table.LookupType == 4:
+                    base_lookup_anchors = self._get_base_anchors(
+                        sub_table.BaseCoverage.glyphs,
+                        sub_table.BaseArray.BaseRecord,
+                    )
+                    mark_lookup_anchors = self._get_mark_anchors(
+                        sub_table.MarkCoverage.glyphs,
+                        sub_table.MarkArray.MarkRecord
+                    )
+                    self._base.append(base_lookup_anchors)
+                    self._marks.append(mark_lookup_anchors)
+
+    def _get_base_anchors(self, glyph_list, anchors_list):
+        """...
+         """
+        _anchors = {}
+        for glyph, anchors in zip(glyph_list, anchors_list):
+            for idx, anchor in enumerate(anchors.BaseAnchor):
+                if idx not in _anchors:
+                    _anchors[idx] = []
+                _anchors[idx].append({
+                    'class': idx,
+                    'name': glyph,
+                    'x': anchor.XCoordinate,
+                    'y': anchor.YCoordinate
                 })
-    return table
+        return _anchors
 
+    def _get_mark_anchors(self, glyph_list, anchors_list):
+        """
+        Collect all mark anchors. Store in dict, key is anchor id
 
-def dump_marks(ttfont, glyph_map=None, ignore_metrics=True):
-    """Return a list of base to mark anchor attachments
+        rtype:
+        {0: [{'class': 0, 'glyph': 'uni0300', 'x': 199, 'y': 0}],
+        {1: [{'class': 0, 'glyph': 'uni0301', 'x': 131, 'y': 74}],
+         """
+        _anchors = {}
+        for glyph, anchor in zip(glyph_list, anchors_list):
+            if anchor.Class not in _anchors:
+                _anchors[anchor.Class] = []
+            _anchors[anchor.Class].append({
+                'name': glyph,
+                'class': anchor.Class,
+                'x': anchor.MarkAnchor.XCoordinate,
+                'y': anchor.MarkAnchor.YCoordinate
+            })
+        return _anchors
 
-    :rtype: [
-        {"base_glyph": glyph, "mark_glyph": glyph,
-         'base_x': int, 'base_y':int,
-         mark_x': int, mark_y: int,},
+    def _gen_base_table(self):
+        """Return a table of mark positioned base glyphs. By default, the
+        table is not flattened. Only the first mark in each class is
+        returned. This keeps the output more human readable"""
+        table = []
+        for l_idx in range(len(self._base)):
+            for m_group in self._base[l_idx]:
+                for glyph in self._base[l_idx][m_group]:
+                    table.append({
+                        'base_glyph': glyph['name'],
+                        'base_x': glyph['x'],
+                        'base_y': glyph['y'],
+                        'mark_glyph': self._marks[l_idx][m_group][0]['name'],
+                        'mark_x': self._marks[l_idx][m_group][0]['x'],
+                        'mark_y': self._marks[l_idx][m_group][0]['y'],
+                    })
+        return table
 
-         {"base_glyph": glyph, "mark_glyph": glyph,
-         'base_x': int, 'base_y':int,
-         mark_x': int, mark_y: int,}
-    ]
-
-    if ignore_metrics is enabled. Every anchor's x coord will be normalised
-    using the glyph's closest point in the x axis; instead of using the
-    glyph's metrics.
-    """
-    if 'GPOS' not in ttfont.keys():
-        logger.warning("Font doesn't have GPOS table. No marks found")
-        return []
-    gpos = ttfont['GPOS']
-    lookup_idxs = mark_lookup_idxs(ttfont)
-    if not lookup_idxs:
-        logger.warning("Font doesn't have a GPOS mark feature")
-        return []
-
-    table = []
-    for idx in lookup_idxs:
-        lookup = gpos.table.LookupList.Lookup[idx]
-
-        for sub_table in lookup.SubTable:
-            if sub_table.Format == 1 and sub_table.LookupType == 4:
-                table += _flatten_format1_subtable(sub_table)
-            # TODO (M Foley) add LookupType 5 marks to lig
-
-    if ignore_metrics:
-        metrics = ttfont['hmtx'].metrics
-        glyf = ttfont['glyf']
-        for mark in table:
-            mark['base_x'] = metrics[mark['base_glyph']][1] - mark['base_x']
-            mark['mark_x'] = metrics[mark['mark_glyph']][1] - mark['mark_x']
-
-            mark['base_y'] = glyf[mark['base_glyph']].yMin - mark['base_y']
-            mark['mark_y'] = glyf[mark['mark_glyph']].yMin - mark['mark_y']
-
-    if glyph_map:
-        for row in table:
-            row['base_glyph'] = glyph_map[row['base_glyph']]
-            row['mark_glyph'] = glyph_map[row['mark_glyph']]
-    return table
+    def _gen_mark_table(self):
+        """Return a table of mark positioned base glyphs. By default, the
+        table is not flattened. Only the first mark in each class is
+        returned. This keeps the output far more human readable"""
+        table = []
+        seen = set()
+        for l_idx in range(len(self._marks)):
+            for m_group in self._marks[l_idx]:
+                for glyph in self._marks[l_idx][m_group]:
+                    if glyph['name'] not in seen:
+                        seen.add(glyph['name'])
+                        table.append({
+                            'mark_glyph': glyph['name'],
+                            'mark_x': glyph['x'],
+                            'mark_y': glyph['y'],
+                            'base_glyph': self._base[l_idx][m_group][0]['name'],
+                            'base_x': self._base[l_idx][m_group][0]['x'],
+                            'base_y': self._base[l_idx][m_group][0]['y'],
+                        })
+        return table
