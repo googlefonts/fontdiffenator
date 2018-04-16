@@ -4,9 +4,9 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def _kerning_lookup_indexes(ttfont):
+def _kerning_lookup_indexes(font):
     """Return the lookup ids for the kern feature"""
-    for feat in ttfont['GPOS'].table.FeatureList.FeatureRecord:
+    for feat in font['GPOS'].table.FeatureList.FeatureRecord:
         if feat.FeatureTag == 'kern':
             return feat.Feature.LookupListIndex
     return None
@@ -65,20 +65,20 @@ def _kern_class(class_definition):
     return classes
 
 
-def dump_kerning(ttfont, glyph_map=None):
+def dump_kerning(font):
 
-    if 'GPOS' not in ttfont:
+    if 'GPOS' not in font:
         logger.warning("Font doesn't have GPOS table. No kerns found")
         return []
 
-    kerning_lookup_indexes = _kerning_lookup_indexes(ttfont)
+    kerning_lookup_indexes = _kerning_lookup_indexes(font)
     if not kerning_lookup_indexes:
         logger.warning("Font doesn't have a GPOS kern feature")
         return []
 
     kern_table = []
     for lookup_idx in kerning_lookup_indexes:
-        lookup = ttfont['GPOS'].table.LookupList.Lookup[lookup_idx]
+        lookup = font['GPOS'].table.LookupList.Lookup[lookup_idx]
 
         for sub_table in lookup.SubTable:
 
@@ -93,14 +93,12 @@ def dump_kerning(ttfont, glyph_map=None):
 
     kern_table = [{'left': k[0], 'right': k[1], 'value': k[2]} for k in kern_table]
 
-    if glyph_map:
-        kern_table_decomped = []
-        for idx, kern in enumerate(kern_table):
-            try:
-                kern_table[idx]['left'] = glyph_map[kern['left']]
-                kern_table[idx]['right'] = glyph_map[kern['right']]
-                kern_table_decomped.append(kern_table[idx])
-            except KeyError:
-                pass
-        return kern_table_decomped
-    return kern_table
+    kern_table_decomped = []
+    for idx, kern in enumerate(kern_table):
+        try:
+            kern_table[idx]['left'] = font.input_map[kern['left']]
+            kern_table[idx]['right'] = font.input_map[kern['right']]
+            kern_table_decomped.append(kern_table[idx])
+        except KeyError:
+            pass
+    return kern_table_decomped

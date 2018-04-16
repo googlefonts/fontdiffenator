@@ -89,7 +89,7 @@ class DumpMarks:
                     _anchors[idx] = []
                 _anchors[idx].append({
                     'class': idx,
-                    'name': glyph,
+                    'name': self._font.input_map[glyph],
                     'x': anchor.XCoordinate,
                     'y': anchor.YCoordinate
                 })
@@ -108,7 +108,7 @@ class DumpMarks:
             if anchor.Class not in _anchors:
                 _anchors[anchor.Class] = []
             _anchors[anchor.Class].append({
-                'name': glyph,
+                'name': self._font.input_map[glyph],
                 'class': anchor.Class,
                 'x': anchor.MarkAnchor.XCoordinate,
                 'y': anchor.MarkAnchor.YCoordinate

@@ -13,13 +13,12 @@
 # limitations under the License.
 
 import collections
-from fontTools.ttLib import TTFont
+from font import InputFont
 from metrics import dump_glyph_metrics
 from kerning import dump_kerning
 from attribs import dump_attribs
 from names import dump_nametable
 from marks import DumpMarks
-from inputgen import glyph_map
 from collections import namedtuple
 import shape_diff
 import time
@@ -51,19 +50,16 @@ def diff_fonts(font_a_path, font_b_path, rendered_diffs=False):
     Kerning, Marks, Attributes, Metrics and Input sequences"""
     d = collections.defaultdict(dict)
 
-    font_a = TTFont(font_a_path)
-    font_b = TTFont(font_b_path)
-
-    glyph_map_a = glyph_map(font_a)
-    glyph_map_b = glyph_map(font_b)
+    font_a = InputFont(font_a_path)
+    font_b = InputFont(font_b_path)
 
     comparisons = ['new', 'missing', 'modified']
     diffs = [
-        ('kern', diff_kerning(font_a, font_b, glyph_map_a, glyph_map_b)),
-        ('metrics', diff_metrics(font_a, font_b, glyph_map_a, glyph_map_b)),
-        ('marks', diff_marks(font_a, font_b, glyph_map_a, glyph_map_b)),
+        ('kern', diff_kerning(font_a, font_b)),
+        ('metrics', diff_metrics(font_a, font_b)),
+        ('marks', diff_marks(font_a, font_b)),
         ('attribs', diff_attribs(font_a, font_b)),
-        ('glyphs', diff_glyphs(glyph_map_a, glyph_map_b)),
+        ('glyphs', diff_glyphs(font_a, font_b)),
         ('names', diff_nametable(font_a, font_b)),
     ]
 
@@ -89,9 +85,9 @@ def diff_fonts(font_a_path, font_b_path, rendered_diffs=False):
 
 
 @timer
-def diff_nametable(ttfont_a, ttfont_b):
-    nametable_a = dump_nametable(ttfont_a)
-    nametable_b = dump_nametable(ttfont_b)
+def diff_nametable(font_a, font_b):
+    nametable_a = dump_nametable(font_a)
+    nametable_b = dump_nametable(font_b)
 
     missing = _subtract_names(nametable_a, nametable_b)
     new = _subtract_names(nametable_b, nametable_a)
@@ -134,10 +130,10 @@ def _modified_names(nametable_a, nametable_b):
 
 
 @timer
-def diff_glyphs(glyph_map_a, glyph_map_b):
+def diff_glyphs(font_a, font_b):
     # TODO (M FOLEY) work shape diff in here
-    glyphset_a = [i for i in glyph_map_a.values()]
-    glyphset_b = [i for i in glyph_map_b.values()]
+    glyphset_a = [i for i in font_a.input_map.values()]
+    glyphset_b = [i for i in font_b.input_map.values()]
 
     missing = _subtract_glyphs(glyphset_a, glyphset_b)
     new = _subtract_glyphs(glyphset_b, glyphset_a)
@@ -147,10 +143,10 @@ def diff_glyphs(glyph_map_a, glyph_map_b):
 
 
 @timer
-def diff_kerning(ttfont_a, ttfont_b, glyph_map_a=None, glyph_map_b=None):
+def diff_kerning(font_a, font_b):
 
-    kern_a = dump_kerning(ttfont_a, glyph_map_a)
-    kern_b = dump_kerning(ttfont_b, glyph_map_b)
+    kern_a = dump_kerning(font_a)
+    kern_b = dump_kerning(font_b)
 
     missing = _subtract_kerns(kern_a, kern_b)
     new = _subtract_kerns(kern_b, kern_a)
@@ -191,9 +187,9 @@ def _modified_kerns(kern_a, kern_b):
 
 
 @timer
-def diff_metrics(ttfont_a, ttfont_b, glyph_map_a, glyph_map_b):
-    metrics_a = dump_glyph_metrics(ttfont_a, glyph_map_a)
-    metrics_b = dump_glyph_metrics(ttfont_b, glyph_map_b)
+def diff_metrics(font_a, font_b):
+    metrics_a = dump_glyph_metrics(font_a)
+    metrics_b = dump_glyph_metrics(font_b)
 
     modified = _modified_metrics(metrics_a, metrics_b)
 
@@ -220,9 +216,9 @@ def _modified_metrics(metrics_a, metrics_b):
 
 
 @timer
-def diff_attribs(ttfont_a, ttfont_b):
-    attribs_a = dump_attribs(ttfont_a)
-    attribs_b = dump_attribs(ttfont_b)
+def diff_attribs(font_a, font_b):
+    attribs_a = dump_attribs(font_a)
+    attribs_b = dump_attribs(font_b)
 
     modified = _modified_attribs(attribs_a, attribs_b)
 
@@ -263,9 +259,9 @@ def _subtract_glyphs(glyphset_a, glyphset_b):
 
 
 @timer
-def diff_marks(ttfont_a, ttfont_b, glyph_map_a, glyph_map_b):
-    marks_a = DumpMarks(ttfont_a)
-    marks_b = DumpMarks(ttfont_b)
+def diff_marks(font_a, font_b):
+    marks_a = DumpMarks(font_a)
+    marks_b = DumpMarks(font_b)
 
     missing = _subtract_marks(marks_a.base_table, marks_b.base_table)
     new = _subtract_marks(marks_b.base_table, marks_a.base_table)
@@ -277,27 +273,21 @@ def diff_marks(ttfont_a, ttfont_b, glyph_map_a, glyph_map_b):
 
 def _subtract_marks(marks_a, marks_b):
 
-    # marks_a_h = {i['base_glyph'].kkey+i['mark_glyph'].kkey: i for i in marks_a}
-    # marks_b_h = {i['base_glyph'].kkey+i['mark_glyph'].kkey: i for i in marks_b}
-    marks_a_h = {i['base_glyph']: i for i in marks_a}
-    marks_b_h = {i['base_glyph']: i for i in marks_b}
+    marks_a_h = {i['base_glyph'].kkey+i['mark_glyph'].kkey: i for i in marks_a}
+    marks_b_h = {i['base_glyph'].kkey+i['mark_glyph'].kkey: i for i in marks_b}
 
     missing = set(marks_a_h.keys()) - set(marks_b_h.keys())
 
     table = []
     for k in missing:
         table.append(marks_a_h[k])
-    # return sorted(table, key=lambda k: k['base_glyph'].name)
-    return sorted(table, key=lambda k: k['base_glyph'])
+    return sorted(table, key=lambda k: k['base_glyph'].name)
 
 
 def _modified_marks(marks_a, marks_b):
 
-    # marks_a_h = {i['base_glyph'].kkey+i['mark_glyph'].kkey: i for i in marks_a}
-    # marks_b_h = {i['base_glyph'].kkey+i['mark_glyph'].kkey: i for i in marks_b}
-
-    marks_a_h = {i['base_glyph']: i for i in marks_a}
-    marks_b_h = {i['base_glyph']: i for i in marks_b}
+    marks_a_h = {i['base_glyph'].kkey+i['mark_glyph'].kkey: i for i in marks_a}
+    marks_b_h = {i['base_glyph'].kkey+i['mark_glyph'].kkey: i for i in marks_b}
 
     shared = set(marks_a_h.keys()) & set(marks_b_h.keys())
 
@@ -318,5 +308,4 @@ def _modified_marks(marks_a, marks_b):
             for pos in ['base_x', 'base_y', 'mark_x', 'mark_y']:
                 mark.pop(pos)
             table.append(mark)
-    return sorted(table, key=lambda k: k['base_glyph'])
-    # return sorted(table, key=lambda k: k['base_glyph'].name)
+    return sorted(table, key=lambda k: k['base_glyph'].name)
