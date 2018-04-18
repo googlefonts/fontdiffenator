@@ -1,6 +1,6 @@
 """Dump a font's mark and mkmk feature
 
-TODO (M FOLEY) add mkmk feature"""
+TODO (M FOLEY) add mkmk feature."""
 
 
 class DumpMarks:
@@ -85,6 +85,7 @@ class DumpMarks:
         _anchors = {}
         for glyph, anchors in zip(glyph_list, anchors_list):
             for idx, anchor in enumerate(anchors.BaseAnchor):
+
                 if idx not in _anchors:
                     _anchors[idx] = []
                 _anchors[idx].append({
@@ -127,9 +128,7 @@ class DumpMarks:
                         'base_glyph': glyph['name'],
                         'base_x': glyph['x'],
                         'base_y': glyph['y'],
-                        'mark_glyph': self._marks[l_idx][m_group][0]['name'],
-                        'mark_x': self._marks[l_idx][m_group][0]['x'],
-                        'mark_y': self._marks[l_idx][m_group][0]['y'],
+                        'mark_glyphs': self._marks[l_idx][m_group]
                     })
         return table
 
@@ -148,8 +147,6 @@ class DumpMarks:
                             'mark_glyph': glyph['name'],
                             'mark_x': glyph['x'],
                             'mark_y': glyph['y'],
-                            'base_glyph': self._base[l_idx][m_group][0]['name'],
-                            'base_x': self._base[l_idx][m_group][0]['x'],
-                            'base_y': self._base[l_idx][m_group][0]['y'],
+                            'base_glyphs': self._base[l_idx][m_group],
                         })
         return table

@@ -263,9 +263,12 @@ def diff_marks(font_a, font_b):
     marks_a = DumpMarks(font_a)
     marks_b = DumpMarks(font_b)
 
-    missing = _subtract_marks(marks_a.base_table, marks_b.base_table)
-    new = _subtract_marks(marks_b.base_table, marks_a.base_table)
-    modified = _modified_marks(marks_a.base_table, marks_b.base_table)
+    marks_a = _compress_to_single_mark(marks_a)
+    marks_b = _match_marks_in_table(marks_b, marks_a)
+
+    missing = _subtract_marks(marks_a, marks_b)
+    new = _subtract_marks(marks_b, marks_a)
+    modified = _modified_marks(marks_a, marks_b)
 
     Marks = namedtuple('Marks', ['new', 'missing', 'modified'])
     return Marks(new, missing, modified)
@@ -284,7 +287,7 @@ def _subtract_marks(marks_a, marks_b):
     return sorted(table, key=lambda k: k['base_glyph'].name)
 
 
-def _modified_marks(marks_a, marks_b):
+def _modified_marks(marks_a, marks_b, ignore_thresh=8):
 
     marks_a_h = {i['base_glyph'].kkey+i['mark_glyph'].kkey: i for i in marks_a}
     marks_b_h = {i['base_glyph'].kkey+i['mark_glyph'].kkey: i for i in marks_b}
@@ -305,7 +308,43 @@ def _modified_marks(marks_a, marks_b):
             mark = marks_a_h[k]
             mark['diff_x'] = offset_b_x - offset_a_x
             mark['diff_y'] = offset_b_y - offset_a_y
+            if abs(mark['diff_x']) + abs(mark['diff_y']) < ignore_thresh:
+                continue
             for pos in ['base_x', 'base_y', 'mark_x', 'mark_y']:
                 mark.pop(pos)
             table.append(mark)
-    return sorted(table, key=lambda k: k['base_glyph'].name)
+
+    return sorted(table, key=lambda k: abs(k['diff_x']) + abs(k['diff_y']),
+                  reverse=True)
+
+
+def _compress_to_single_mark(table):
+    """..."""
+    new_table = []
+    for row in table.base_table:
+        row['mark_glyph'] = row['mark_glyphs'][0]['name']
+        row['mark_x'] = row['mark_glyphs'][0]['x']
+        row['mark_y'] = row['mark_glyphs'][0]['y']
+        del row['mark_glyphs']
+        new_table.append(row)
+    return new_table
+
+
+def _match_marks_in_table(table, table2):
+    """..."""
+    marks_to_match = set([r['mark_glyph'].kkey for r in table2])
+
+    new_table = []
+    for row in table.base_table:
+        for idx, mark in enumerate(row['mark_glyphs']):
+            if mark['name'].kkey in marks_to_match:
+                row['mark_glyph'] = row['mark_glyphs'][idx]['name']
+                row['mark_x'] = row['mark_glyphs'][idx]['x']
+                row['mark_y'] = row['mark_glyphs'][idx]['y']
+                del row['mark_glyphs']
+                break
+        if 'mark_glyphs' in row.keys():
+            del row
+        else:
+            new_table.append(row)
+    return new_table
