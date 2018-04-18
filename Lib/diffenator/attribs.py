@@ -133,5 +133,5 @@ def dump_attribs(font):
                     }
                     attribs.append(d)
                 except AttributeError:
-                    logger.warn("Font {} Missing attrib {}".format(attr))
+                    logger.warn("{} Missing attrib {}".format(tbl_tag, attr))
     return attribs

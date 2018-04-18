@@ -6,7 +6,7 @@ TODO (M FOLEY) add mkmk feature."""
 class DumpMarks:
     def __init__(self, font):
         self._font = font
-        self._lookups = self._get_lookups()
+        self._lookups = self._get_lookups() if 'GPOS' in font.keys() else []
         self._base = []
         self._base_anchors = []
         self._mark_anchors = []

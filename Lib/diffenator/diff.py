@@ -182,6 +182,7 @@ def _modified_kerns(kern_a, kern_b):
         if kern_a_h[k]['value'] != kern_b_h[k]['value']:
             kern_diff = kern_a_h[k]
             kern_diff['diff'] = kern_b_h[k]['value'] - kern_a_h[k]['value']
+            del kern_diff['value']
             table.append(kern_diff)
     return sorted(table, key=lambda k: abs(k['diff']), reverse=True)
 
