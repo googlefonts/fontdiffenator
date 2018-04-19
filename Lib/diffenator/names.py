@@ -12,8 +12,3 @@ def dump_nametable(ttfont):
             'id': (name.nameID, name.platformID, name.platEncID, name.langID)
         })
     return table
-
-
-if __name__ == '__main__':
-    f = TTFont('/Users/marc/Desktop/tajawal/AmaticSC-Regular.ttf')
-    print dump_nametable(f)

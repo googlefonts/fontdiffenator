@@ -4,6 +4,7 @@ TODO (M FOLEY) add mkmk feature."""
 
 
 class DumpMarks:
+    """Dump a font's mark positions"""
     def __init__(self, font):
         self._font = font
         self._lookups = self._get_lookups() if 'GPOS' in font.keys() else []
@@ -80,8 +81,6 @@ class DumpMarks:
                     self._marks.append(mark_lookup_anchors)
 
     def _get_base_anchors(self, glyph_list, anchors_list):
-        """...
-         """
         _anchors = {}
         for glyph, anchors in zip(glyph_list, anchors_list):
             for idx, anchor in enumerate(anchors.BaseAnchor):
@@ -98,8 +97,6 @@ class DumpMarks:
 
     def _get_mark_anchors(self, glyph_list, anchors_list):
         """
-        Collect all mark anchors. Store in dict, key is anchor id
-
         rtype:
         {0: [{'class': 0, 'glyph': 'uni0300', 'x': 199, 'y': 0}],
         {1: [{'class': 0, 'glyph': 'uni0301', 'x': 131, 'y': 74}],
@@ -117,9 +114,42 @@ class DumpMarks:
         return _anchors
 
     def _gen_base_table(self):
-        """Return a table of mark positioned base glyphs. By default, the
-        table is not flattened. Only the first mark in each class is
-        returned. This keeps the output more human readable"""
+        """Return a table consisting of base_glyphs with their corresponding
+        mark attachments.
+
+        [
+            {'base_glyph': 'a',
+             'base_x': 0,
+             'base_y': 0,
+             'mark_glyphs': [
+                 {
+                     'mark_glyph': 'uni0300',
+                     'mark_x': 100,
+                     'mark_y': 100
+                 },
+                 {
+                     'mark_glyph': 'uni0301',
+                     'mark_x': 100,
+                     'mark_y': 100
+                 },
+            ]},
+            {'base_glyph': 'o',
+             'base_x': 0,
+             'base_y': 0,
+             'mark_glyphs': [
+                 {
+                     'mark_glyph': 'uni0300',
+                     'mark_x': 100,
+                     'mark_y': 100
+                 },
+                 {
+                     'mark_glyph': 'uni0301',
+                     'mark_x': 100,
+                     'mark_y': 100
+                 },
+            ]},
+        ]
+        """
         table = []
         for l_idx in range(len(self._base)):
             for m_group in self._base[l_idx]:
@@ -133,9 +163,7 @@ class DumpMarks:
         return table
 
     def _gen_mark_table(self):
-        """Return a table of mark positioned base glyphs. By default, the
-        table is not flattened. Only the first mark in each class is
-        returned. This keeps the output far more human readable"""
+        """Return a table of mark positioned base glyphs."""
         table = []
         seen = set()
         for l_idx in range(len(self._marks)):

@@ -11,6 +11,7 @@ from diffenator.names import dump_nametable
 from diffenator.metrics import dump_glyph_metrics
 from diffenator.marks import DumpMarks
 from diffenator.kerning import dump_kerning
+from diffenator.glyphs import dump_glyphs
 from diffenator.diff import (
     _modified_attribs,
     _modified_names,
@@ -154,20 +155,20 @@ class TestGlyphs(unittest.TestCase):
         font_b = mock_font(
             glyphs=[('a', 100, 100), ('b', 100, 100), ('f.alt', 100, 100)])
 
-        input_map_a = font_a.input_map.values()
-        input_map_b = font_b.input_map.values()
+        glyphs_a = dump_glyphs(font_a)
+        glyphs_b = dump_glyphs(font_b)
 
-        missing = _subtract_glyphs(input_map_a, input_map_b)
+        missing = _subtract_glyphs(glyphs_a, glyphs_b)
         self.assertNotEqual(missing, [])
 
     def test_missing_encoded_glyphs(self):
-        font_a = mock_font(glyphs=[('a', 0, 0)])
-        font_b = mock_font(glyphs=[('a', 0, 0), ('b', 0, 0)])
+        font_a = mock_font(glyphs=[('a', 0, 0), ('b', 0, 0)])
+        font_b = mock_font(glyphs=[('a', 0, 0)])
 
-        input_map_a = font_a.input_map.values()
-        input_map_b = font_b.input_map.values()
+        glyphs_a = dump_glyphs(font_a)
+        glyphs_b = dump_glyphs(font_b)
 
-        missing_a = _subtract_glyphs(input_map_b, input_map_a)
+        missing_a = _subtract_glyphs(glyphs_a, glyphs_b)
         self.assertNotEqual(missing_a, [])
 
 

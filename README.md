@@ -10,8 +10,10 @@ Most differs will only compare glyphs if they have matching names. Diffenator ma
 **Mark positioning**
 Marks coordinates are related to the glyph's outlines; not the metrics.
 
+A single matching glyph is chosen from each mark class; thus keeping the output compact.
+
 **Kerning**
-Pair and class to class kerning are supported. The class kerns get flattened into pairs. Unfortunately this approach is very slow.
+Pair and class to class kerning are supported. The class kerns get flattened into pairs. Unfortunately this approach is very slow and needs improving.
 
 
 ## Limitations

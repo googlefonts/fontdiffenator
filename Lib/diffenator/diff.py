@@ -11,6 +11,71 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+Diffs are made in the following manner.
+
+- Dump relevant info for each font into a table.
+- For every row in each table, make a key dict from selected columns
+- Find matching keys across tables
+- Use set operations to find missing and modified rows
+- Return a new table including new columns containing the differences
+
+
+Table structure:
+A table is simply a list containing dicts for each row. For this doc,
+we'll use the following example:
+
+
+font_a =
+[
+    {"glyph" "x", "base_x": 20, "base_y": 40},
+    {"glyph" "y", "base_x": 35, "base_y": 40},
+]
+
+font_b =
+[
+    {"glyph" "x", "base_x": 30, "base_y": 40},
+    {"glyph" "y", "base_x": 35, "base_y": 40},
+    {"glyph" "z", "base_x": 20, "base_y": 40},
+]
+
+Making key dict:
+In the above tables we can produce a key:
+
+anchors_a_h = {r['glyph']: r for r in table}
+
+{"x" {"glyph" "x", "base_x": 20, "base_y": 40}}
+...
+
+We could even make a key by using coords
+
+anchors_a_h = {(r["base_x"], r["base_y"]: r for r in table)}
+
+{(20, 40): {"glyph" "x", "base_x": 20, "base_y": 40}}
+
+
+This step is similiar to Excel's ability to sort by columns
+
+
+Returning diff table
+When differences are discovered, they're appended to a new table. For
+our example we'd get the following:
+
+
+missing =
+[
+    {"glyph" "z", "base_x": 20, "base_y": 40}
+]
+
+modified =
+font_b =
+[
+    {"glyph" "x", "diff_x": 10, "diff_y": 0},
+]
+
+new =
+[]
+"""
 
 import collections
 from font import InputFont
@@ -18,9 +83,9 @@ from metrics import dump_glyph_metrics
 from kerning import dump_kerning
 from attribs import dump_attribs
 from names import dump_nametable
+from glyphs import dump_glyphs
 from marks import DumpMarks
 from collections import namedtuple
-import shape_diff
 import time
 
 __all__ = ['diff_fonts', 'diff_metrics', 'diff_kerning',
@@ -47,7 +112,9 @@ def timer(method):
 
 def diff_fonts(font_a_path, font_b_path, rendered_diffs=False):
     """Compare two fonts and return the difference for:
-    Kerning, Marks, Attributes, Metrics and Input sequences"""
+    Kerning, Marks, Attributes, Metrics and Input sequences.
+
+    rtype: collection.defaultdict"""
     d = collections.defaultdict(dict)
 
     font_a = InputFont(font_a_path)
@@ -67,20 +134,6 @@ def diff_fonts(font_a_path, font_b_path, rendered_diffs=False):
         for comparison in comparisons:
             if hasattr(diff, comparison):
                 d[category][comparison] = getattr(diff, comparison)
-
-    # Glyph Shaping
-    # TODO (m4rc1e): Rework diff object
-    shape_report = {}
-    shape = shape_diff.ShapeDiffFinder(
-        font_a_path, font_b_path,
-        shape_report, diff_threshold=DIFF_THRESH
-    )
-    if rendered_diffs:
-        shape.find_rendered_diffs()
-    else:
-        shape.find_area_diffs()
-    shape.cleanup()
-
     return d
 
 
@@ -132,19 +185,20 @@ def _modified_names(nametable_a, nametable_b):
 @timer
 def diff_glyphs(font_a, font_b):
     # TODO (M FOLEY) work shape diff in here
-    glyphset_a = [i for i in font_a.input_map.values()]
-    glyphset_b = [i for i in font_b.input_map.values()]
+    glyphs_a = dump_glyphs(font_a)
+    glyphs_b = dump_glyphs(font_b)
 
-    missing = _subtract_glyphs(glyphset_a, glyphset_b)
-    new = _subtract_glyphs(glyphset_b, glyphset_a)
+    missing = _subtract_glyphs(glyphs_a, glyphs_b)
+    new = _subtract_glyphs(glyphs_b, glyphs_a)
+    modified = _modified_glyphs(glyphs_a, glyphs_b)
 
-    Glyphs = namedtuple('Glyphs', ['new', 'missing'])
-    return Glyphs(new, missing)
+    Glyphs = namedtuple('Glyphs', ['new', 'missing', 'modified'])
+    return Glyphs(new, missing, modified)
 
 
 @timer
 def diff_kerning(font_a, font_b):
-
+    """Kerns are flattened and then tested for differences."""
     kern_a = dump_kerning(font_a)
     kern_b = dump_kerning(font_b)
 
@@ -246,21 +300,45 @@ def _modified_attribs(attribs_a, attribs_b):
     return table
 
 
-def _subtract_glyphs(glyphset_a, glyphset_b):
-    glyphset_a_h = {i.kkey: i for i in glyphset_a}
-    glyphset_b_h = {i.kkey: i for i in glyphset_b}
+def _subtract_glyphs(glyphs_a, glyphs_b):
+    glyphs_a_h = {r['glyph'].kkey: r for r in glyphs_a}
+    glyphs_b_h = {r['glyph'].kkey: r for r in glyphs_b}
 
-    missing = set(glyphset_a_h.keys()) - set(glyphset_b_h.keys())
+    missing = set(glyphs_a_h.keys()) - set(glyphs_b_h.keys())
 
     table = []
     for k in missing:
-        if glyphset_a_h[k].characters:
-            table.append({'glyph': glyphset_a_h[k]})
+        if glyphs_a_h[k]['glyph'].characters:
+            table.append(glyphs_a_h[k])
     return sorted(table, key=lambda k: k['glyph'].name)
+
+
+def _modified_glyphs(glyphs_a, glyphs_b):
+    glyphs_a_h = {r['glyph'].kkey: r for r in glyphs_a}
+    glyphs_b_h = {r['glyph'].kkey: r for r in glyphs_b}
+
+    shared = set(glyphs_a_h.keys()) & set(glyphs_b_h.keys())
+
+    table = []
+    for k in shared:
+        if glyphs_a_h[k]['area'] != glyphs_b_h[k]['area']:
+            table.append({
+                "glyph": glyphs_a_h[k]['glyph'],
+                "diff":  glyphs_b_h[k]['area'] - glyphs_a_h[k]['area']
+            })
+    return sorted(table, key=lambda k: k['diff'], reverse=True)
 
 
 @timer
 def diff_marks(font_a, font_b):
+    """Compare mark positioning differences.
+
+    In order to flatten the class marks, the first mark glyph is chosen for
+    marks_a, marks_b will then be flattened using the same mark.
+
+    TODO (M Foley) this approach won't work if marks_b doesn't contain the
+    mark chosen in marks_a.
+    """
     marks_a = DumpMarks(font_a)
     marks_b = DumpMarks(font_b)
 
@@ -320,7 +398,14 @@ def _modified_marks(marks_a, marks_b, ignore_thresh=8):
 
 
 def _compress_to_single_mark(table):
-    """..."""
+    """table = [
+        {'base_glyph': 'x', 'base_x': 0, 'base_y': 0, 'mark_glyphs': [...]}
+    ] -->
+    table = [
+        {'base_glyph': 'x', 'base_x': 0, 'base_y': 0,
+         'mark_glyph': 'uni0300', 'mark_x': 0, 'mark_y': 0}
+    ]
+    """
     new_table = []
     for row in table.base_table:
         row['mark_glyph'] = row['mark_glyphs'][0]['name']
@@ -332,7 +417,8 @@ def _compress_to_single_mark(table):
 
 
 def _match_marks_in_table(table, table2):
-    """..."""
+    """Reduce 'mark_glyphs' list to a single 'mark_glyph' by matching
+    the 'mark_glyph' in table2."""
     marks_to_match = set([r['mark_glyph'].kkey for r in table2])
 
     new_table = []

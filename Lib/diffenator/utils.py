@@ -41,6 +41,11 @@ def cli_reporter(font_a, font_b, comp_data, output_lines=10):
                         ['base_glyph', 'mark_glyph', 'base_x',
                          'base_y', 'mark_x', 'mark_y']
                     )
+                elif category == 'glyphs' and sub_category == 'modified':
+                    print dict_cli_table(
+                        comp_data[category][sub_category][:output_lines],
+                        ['glyph', 'diff']
+                    )
                 elif category == 'glyphs':
                     print dict_cli_table(
                         comp_data[category][sub_category][:output_lines],

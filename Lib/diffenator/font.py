@@ -1,3 +1,6 @@
+"""InputFont inherits TTFont and adds an input map attribute. This attrib
+contains a glyph object which contains the input, features for each glyph.
+"""
 from fontTools.misc.py23 import unichr
 from fontTools.ttLib import TTFont
 from nototools.hb_input import HbInputGenerator
@@ -26,6 +29,7 @@ class InputFont(TTFont):
 
 
 class InputGenerator(HbInputGenerator):
+    """Taken from Nototool's HbIntputGenerator"""
 
     def all_inputs(self, warn=False):
         """Generate harfbuzz inputs for all glyphs in a given font."""

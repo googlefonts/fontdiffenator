@@ -1,4 +1,7 @@
-"""Dump a font's GPOS kerning."""
+"""Dump a font's GPOS kerning.
+
+TODO (Marc Foley) Flattening produced too much output. Perhaps it's better
+to keep the classes and map each class to a single glyph."""
 import logging
 
 logger = logging.getLogger(__name__)
