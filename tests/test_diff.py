@@ -6,24 +6,13 @@ from fontTools.agl import AGL2UV
 from fontTools.feaLib.builder import addOpenTypeFeaturesFromString
 
 from diffenator.font import InputFont
-from diffenator.attribs import dump_attribs
-from diffenator.names import dump_nametable
-from diffenator.metrics import dump_glyph_metrics
-from diffenator.marks import DumpMarks
-from diffenator.kerning import dump_kerning
-from diffenator.glyphs import dump_glyphs
 from diffenator.diff import (
-    _modified_attribs,
-    _modified_names,
-    _subtract_names,
-    _modified_metrics,
-    _subtract_glyphs,
-    _subtract_marks,
-    _modified_marks,
-    _compress_to_single_mark,
-    _match_marks_in_table,
-    _subtract_kerns,
-    _modified_kerns
+    diff_nametable,
+    diff_attribs,
+    diff_metrics,
+    diff_glyphs,
+    diff_marks,
+    diff_kerning,
 )
 
 
@@ -96,11 +85,10 @@ class TestDiffAttribs(unittest.TestCase):
             attrs=[('head', 'fontRevision', 2.000)]
         )
 
-        self.attribs_a = dump_attribs(self.font_a)
-        self.attribs_b = dump_attribs(self.font_b)
+        self.diff = diff_attribs(self.font_a, self.font_b)
 
     def test_diff_attribs(self):
-        modified = _modified_attribs(self.attribs_a, self.attribs_b)
+        modified = self.diff.modified
         self.assertNotEqual(modified, [])
 
 
@@ -113,15 +101,14 @@ class TestDiffNames(unittest.TestCase):
         self.font_b = mock_font(
             names=[(unicode("barfoo"), 1, 1, 0, 0)])
 
-        self.names_a = dump_nametable(self.font_a)
-        self.names_b = dump_nametable(self.font_b)
+        self.diff = diff_nametable(self.font_a, self.font_b)
 
     def test_diff_nametable(self):
-        modified = _modified_names(self.names_a, self.names_b)
+        modified = self.diff.modified
         self.assertNotEqual(modified, [])
 
     def test_subtract_nametable(self):
-        missing = _subtract_names(self.names_a, self.names_b)
+        missing = self.diff.missing
         self.assertNotEqual(missing, [])
 
 
@@ -134,11 +121,10 @@ class TestDiffMetrics(unittest.TestCase):
         self.font_b = mock_font(
             glyphs=[('a', 550, 10)]
         )
-        self.metrics_a = dump_glyph_metrics(self.font_a)
-        self.metrics_b = dump_glyph_metrics(self.font_b)
+        self.diff = diff_metrics(self.font_a, self.font_b)
 
     def test_modified_metrics(self):
-        modified = _modified_metrics(self.metrics_a, self.metrics_b)
+        modified = self.diff.modified
         self.assertNotEqual(modified, [])
 
 
@@ -154,22 +140,16 @@ class TestGlyphs(unittest.TestCase):
         ''')
         font_b = mock_font(
             glyphs=[('a', 100, 100), ('b', 100, 100), ('f.alt', 100, 100)])
-
-        glyphs_a = dump_glyphs(font_a)
-        glyphs_b = dump_glyphs(font_b)
-
-        missing = _subtract_glyphs(glyphs_a, glyphs_b)
+        self.diff = diff_glyphs(font_a, font_b)
+        missing = self.diff.missing
         self.assertNotEqual(missing, [])
 
     def test_missing_encoded_glyphs(self):
         font_a = mock_font(glyphs=[('a', 0, 0), ('b', 0, 0)])
         font_b = mock_font(glyphs=[('a', 0, 0)])
-
-        glyphs_a = dump_glyphs(font_a)
-        glyphs_b = dump_glyphs(font_b)
-
-        missing_a = _subtract_glyphs(glyphs_a, glyphs_b)
-        self.assertNotEqual(missing_a, [])
+        self.diff = diff_glyphs(font_a, font_b)
+        missing = self.diff.missing
+        self.assertNotEqual(missing, [])
 
 
 class TestMarks(unittest.TestCase):
@@ -191,13 +171,8 @@ class TestMarks(unittest.TestCase):
             glyphs=[('a', 100, 100)]
         )
 
-        marks_a = DumpMarks(font_a)
-        marks_b = DumpMarks(font_b)
-
-        marks_a = _compress_to_single_mark(marks_a)
-        marks_b = _match_marks_in_table(marks_b, marks_a)
-
-        missing = _subtract_marks(marks_a, marks_b)
+        diff = diff_marks(font_a, font_b)
+        missing = diff.missing
         self.assertNotEqual(missing, [])
 
     def test_modified_base_mark(self):
@@ -223,13 +198,8 @@ class TestMarks(unittest.TestCase):
             } mark;
             """
         )
-        marks_a = DumpMarks(font_a)
-        marks_b = DumpMarks(font_b)
-
-        marks_a = _compress_to_single_mark(marks_a)
-        marks_b = _match_marks_in_table(marks_b, marks_a)
-
-        modified = _modified_marks(marks_a, marks_b)
+        diff = diff_marks(font_a, font_b)
+        modified = diff.modified
         self.assertNotEqual(modified, [])
 
 
@@ -246,10 +216,8 @@ class TestKerns(unittest.TestCase):
         font_b = mock_font(
             glyphs=[('A', 50, 50), ('V', 50, 50)]
         )
-        kern_a = dump_kerning(font_a)
-        kern_b = dump_kerning(font_b)
-
-        missing = _subtract_kerns(kern_a, kern_b)
+        diff = diff_kerning(font_a, font_b)
+        missing = diff.missing
         self.assertNotEqual(missing, [])
 
     def test_modified_kerns(self):
@@ -267,10 +235,8 @@ class TestKerns(unittest.TestCase):
                 pos A V -140;} kern;
             """
         )
-        kern_a = dump_kerning(font_a)
-        kern_b = dump_kerning(font_b)
-
-        modified = _modified_kerns(kern_a, kern_b)
+        diff = diff_kerning(font_a, font_b)
+        modified = diff.modified
         self.assertNotEqual(modified, [])
 
 
