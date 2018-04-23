@@ -20,8 +20,3 @@ def dump_glyphs(font):
         new_r = {'glyph': r, 'area': glyph_area(glyphset, r.name)}
         new_table.append(new_r)
     return new_table
-
-
-if __name__ == '__main__':
-    f = InputFont('/Users/marc/Documents/googlefonts/manual_font_cleaning/AmaticSC/fonts/ttf/AmaticSC-Regular.ttf')
-    print dump_glyphs(f)
