@@ -1,6 +1,9 @@
 """Dump a font's mark and mkmk feature
 
 TODO (M FOLEY) add mkmk feature."""
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class DumpMarks:
@@ -57,12 +60,15 @@ class DumpMarks:
     def _get_lookups(self):
         """Return the lookups used for the mark feature"""
         gpos = self._font['GPOS']
+        lookup_idxs = []
         for feat in gpos.table.FeatureList.FeatureRecord:
             if feat.FeatureTag == 'mark':
                 lookup_idxs = feat.Feature.LookupListIndex
         lookups = []
         for idx in lookup_idxs:
             lookups.append(gpos.table.LookupList.Lookup[idx])
+        if len(lookups) == 0:
+            logger.warn("Font has no mark positioned glyphs")
         return lookups
 
     def _get_groups(self):
