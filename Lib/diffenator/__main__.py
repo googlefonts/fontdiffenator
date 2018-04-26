@@ -26,7 +26,6 @@ def main():
     comparison = diff_fonts(
         args.font_a,
         args.font_b,
-        rendered_diffs=False
     )
 
     output_lines = args.output_lines if args.output_lines else 1000

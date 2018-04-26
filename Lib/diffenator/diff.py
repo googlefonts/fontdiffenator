@@ -110,7 +110,7 @@ def timer(method):
     return timed
 
 
-def diff_fonts(font_a_path, font_b_path, rendered_diffs=False):
+def diff_fonts(font_a_path, font_b_path):
     """Compare two fonts and return the difference for:
     Kerning, Marks, Attributes, Metrics and Input sequences.
 
