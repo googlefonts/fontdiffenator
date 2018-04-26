@@ -26,6 +26,9 @@ def mock_font(names=None,
         _mock_set_names(font, names)
     if attrs:
         _mock_set_attr(font, attrs)
+    else:
+        attrs = [('head', 'unitsPerEm', 1000)]
+        _mock_set_attr(font, attrs)
     if glyphs:
         _mock_set_glyphs(font, glyphs)
     if fea:
@@ -78,17 +81,51 @@ class TestDiffAttribs(unittest.TestCase):
     def setUp(self):
         self.font_a = mock_font(
             glyphs=[('a', 400, 50)],
-            attrs=[('head', 'fontRevision', 1.000)]
+            attrs=[('head', 'unitsPerEm', 1000),
+                   ('head', 'fontRevision', 1.000)]
         )
         self.font_b = mock_font(
             glyphs=[('a', 400, 50)],
-            attrs=[('head', 'fontRevision', 2.000)]
+            attrs=[('head', 'unitsPerEm', 1000),
+                   ('head', 'fontRevision', 2.000)]
         )
 
         self.diff = diff_attribs(self.font_a, self.font_b)
 
     def test_diff_attribs(self):
         modified = self.diff.modified
+        self.assertNotEqual(modified, [])
+
+    def test_upm_scale_attribs(self):
+        font_a = mock_font(
+            attrs=[
+                ('head', 'unitsPerEm', 1000),
+                ('OS/2', 'sTypoDescender', 700)
+            ]
+        )
+        font_b = mock_font(
+            attrs=[('head', 'unitsPerEm', 2000),
+                   ('OS/2', 'sTypoDescender', 1400)]
+        )
+        diff = diff_attribs(font_a, font_b)
+        modified = diff.modified
+        self.assertEqual(len(modified), 1)
+
+    def test_upm_scale_ignore(self):
+        font_a = mock_font(
+            attrs=[
+                ('head', 'unitsPerEm', 1000),
+                ('OS/2', 'fsSelection', 64)
+            ]
+        )
+        font_b = mock_font(
+            attrs=[
+                ('head', 'unitsPerEm', 2000),
+                ('OS/2', 'fsSelection', 128)
+            ]
+        )
+        diff = diff_attribs(font_a, font_b)
+        modified = diff.modified
         self.assertNotEqual(modified, [])
 
 
@@ -116,16 +153,32 @@ class TestDiffMetrics(unittest.TestCase):
 
     def setUp(self):
         self.font_a = mock_font(
-            glyphs=[('a', 400, 50)]
+            glyphs=[('a', 400, 50)],
+            attrs=[('head', 'unitsPerEm', 1000)]
         )
         self.font_b = mock_font(
-            glyphs=[('a', 550, 10)]
+            glyphs=[('a', 550, 10)],
+            attrs=[('head', 'unitsPerEm', 2048)]
         )
         self.diff = diff_metrics(self.font_a, self.font_b)
 
     def test_modified_metrics(self):
         modified = self.diff.modified
         self.assertNotEqual(modified, [])
+
+    def test_upm_scale_metrics(self):
+        """Check that upm scales are ignored"""
+        font_a = mock_font(
+            glyphs=[('a', 1134, 0)],
+            attrs=[('head', 'unitsPerEm', 1000)]
+        )
+        font_b = mock_font(
+            glyphs=[('a', 2268, 0)],
+            attrs=[('head', 'unitsPerEm', 2000)]
+        )
+        diff = diff_metrics(font_a, font_b,)
+        modified = diff.modified
+        self.assertEqual(modified, [])
 
 
 class TestGlyphs(unittest.TestCase):
@@ -202,6 +255,35 @@ class TestMarks(unittest.TestCase):
         modified = diff.modified
         self.assertNotEqual(modified, [])
 
+    def test_upm_scale_modified_marks(self):
+        font_a = mock_font(
+            attrs=[('head', 'unitsPerEm', 1000)],
+            glyphs=[('A', 100, 100), ('acutecomb', 0, 0)],
+            fea="""
+            markClass [acutecomb] <anchor 150 0> @top;
+
+            feature mark {
+                pos base [A]
+                 <anchor 100 300> mark @top;
+            } mark;
+            """
+        )
+        font_b = mock_font(
+            attrs=[('head', 'unitsPerEm', 2000)],
+            glyphs=[('A', 200, 200), ('acutecomb', 0, 0)],
+            fea="""
+            markClass [acutecomb] <anchor 300 0> @top;
+
+            feature mark {
+                pos base [A]
+                 <anchor 200 600> mark @top;
+            } mark;
+            """
+        )
+        diff = diff_marks(font_a, font_b)
+        modified = diff.modified
+        self.assertEqual(modified, [])
+
 
 class TestKerns(unittest.TestCase):
 
@@ -238,6 +320,27 @@ class TestKerns(unittest.TestCase):
         diff = diff_kerning(font_a, font_b)
         modified = diff.modified
         self.assertNotEqual(modified, [])
+
+    def test_upm_scale_modified_kerns(self):
+        font_a = mock_font(
+            attrs=[('head', 'unitsPerEm', 1000)],
+            glyphs=[('A', 50, 50), ('V', 50, 50)],
+            fea="""
+                feature kern {
+                pos A V -120;} kern;
+            """
+        )
+        font_b = mock_font(
+            attrs=[('head', 'unitsPerEm', 2000)],
+            glyphs=[('A', 100, 100), ('V', 100, 100)],
+            fea="""
+                feature kern {
+                pos A V -240;} kern;
+            """
+        )
+        diff = diff_kerning(font_a, font_b)
+        modified = diff.modified
+        self.assertEqual(modified, [])
 
 
 if __name__ == '__main__':

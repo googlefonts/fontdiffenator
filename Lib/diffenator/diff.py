@@ -174,16 +174,20 @@ def _modified_names(names_a, names_b):
 
 
 @timer
-def diff_glyphs(font_a, font_b):
+def diff_glyphs(font_a, font_b, thresh=800, scale_upms=True):
     glyphs_a = dump_glyphs(font_a)
     glyphs_b = dump_glyphs(font_b)
+
+    upm_a = font_a['head'].unitsPerEm
+    upm_b = font_b['head'].unitsPerEm
 
     glyphs_a_h = {r['glyph'].kkey: r for r in glyphs_a}
     glyphs_b_h = {r['glyph'].kkey: r for r in glyphs_b}
 
     missing = _subtract_items(glyphs_a_h, glyphs_b_h)
     new = _subtract_items(glyphs_b_h, glyphs_a_h)
-    modified = _modified_glyphs(glyphs_a_h, glyphs_b_h)
+    modified = _modified_glyphs(glyphs_a_h, glyphs_b_h, thresh,
+                                upm_a, upm_b, scale_upms=scale_upms)
 
     Glyphs = namedtuple('Glyphs', ['new', 'missing', 'modified'])
     return Glyphs(
@@ -194,17 +198,21 @@ def diff_glyphs(font_a, font_b):
 
 
 @timer
-def diff_kerning(font_a, font_b):
+def diff_kerning(font_a, font_b, thresh=2, scale_upms=True):
     """Kerns are flattened and then tested for differences."""
     kern_a = dump_kerning(font_a)
     kern_b = dump_kerning(font_b)
+
+    upm_a = font_a['head'].unitsPerEm
+    upm_b = font_b['head'].unitsPerEm
 
     kern_a_h = {i['left'].kkey + i['right'].kkey: i for i in kern_a}
     kern_b_h = {i['left'].kkey + i['right'].kkey: i for i in kern_b}
 
     missing = _subtract_items(kern_a_h, kern_b_h)
     new = _subtract_items(kern_b_h, kern_a_h)
-    modified = _modified_kerns(kern_a_h, kern_b_h)
+    modified = _modified_kerns(kern_a_h, kern_b_h, thresh,
+                               upm_a, upm_b, scale_upms=scale_upms)
 
     Kern = namedtuple('KernDiff', ['new', 'missing', 'modified'])
     return Kern(
@@ -219,13 +227,19 @@ def _subtract_items(items_a, items_b):
     return [items_a[i] for i in subtract]
 
 
-def _modified_kerns(kern_a, kern_b):
+def _modified_kerns(kern_a, kern_b, thresh=2,
+                    upm_a=None, upm_b=None, scale_upms=False):
 
     shared = set(kern_a.keys()) & set(kern_b.keys())
 
     table = []
     for k in shared:
-        if kern_a[k]['value'] != kern_b[k]['value']:
+        if scale_upms and upm_a and upm_b:
+            kern_a[k]['value'] = (kern_a[k]['value'] / float(upm_a)) * upm_a
+            kern_b[k]['value'] = (kern_b[k]['value'] / float(upm_b)) * upm_a
+
+        diff = kern_b[k]['value'] - kern_a[k]['value']
+        if abs(diff) > thresh:
             kern_diff = kern_a[k]
             kern_diff['diff'] = kern_b[k]['value'] - kern_a[k]['value']
             del kern_diff['value']
@@ -234,11 +248,18 @@ def _modified_kerns(kern_a, kern_b):
 
 
 @timer
-def diff_metrics(font_a, font_b):
+def diff_metrics(font_a, font_b, thresh=1, scale_upms=True):
     metrics_a = dump_glyph_metrics(font_a)
     metrics_b = dump_glyph_metrics(font_b)
 
-    modified = _modified_metrics(metrics_a, metrics_b)
+    upm_a = font_a['head'].unitsPerEm
+    upm_b = font_b['head'].unitsPerEm
+
+    metrics_a_h = {i['glyph'].kkey: i for i in metrics_a}
+    metrics_b_h = {i['glyph'].kkey: i for i in metrics_b}
+
+    modified = _modified_metrics(metrics_a_h, metrics_b_h, thresh,
+                                 upm_a, upm_b, scale_upms)
 
     Metrics = namedtuple('Metrics', ['modified'])
     return Metrics(
@@ -246,70 +267,111 @@ def diff_metrics(font_a, font_b):
     )
 
 
-def _modified_metrics(metrics_a, metrics_b):
+def _modified_metrics(metrics_a, metrics_b, thresh=2,
+                      upm_a=None, upm_b=None, scale_upms=False):
 
-    metrics_a_h = {i['glyph'].kkey: i for i in metrics_a}
-    metrics_b_h = {i['glyph'].kkey: i for i in metrics_b}
-
-    shared = set(metrics_a_h.keys()) & set(metrics_b_h.keys())
+    shared = set(metrics_a.keys()) & set(metrics_b.keys())
 
     table = []
     for k in shared:
-        if metrics_a_h[k]['adv'] != metrics_b_h[k]['adv']:
-            metrics = metrics_a_h[k]
-            metrics['diff_adv'] = metrics_b_h[k]['adv'] - metrics_a_h[k]['adv']
-            metrics['diff_lsb'] = metrics_b_h[k]['lsb'] - metrics_b_h[k]['lsb']
-            metrics['diff_rsb'] = metrics_b_h[k]['rsb'] - metrics_b_h[k]['rsb']
+        if scale_upms and upm_a and upm_b:
+            metrics_a[k]['adv'] = (metrics_a[k]['adv'] / float(upm_a)) * upm_a
+            metrics_b[k]['adv'] = (metrics_b[k]['adv'] / float(upm_b)) * upm_a
+
+        diff = abs(metrics_b[k]['adv'] - metrics_a[k]['adv'])
+        if diff > thresh:
+            metrics = metrics_a[k]
+            metrics['diff_adv'] = diff
+            metrics['diff_lsb'] = metrics_b[k]['lsb'] - metrics_b[k]['lsb']
+            metrics['diff_rsb'] = metrics_b[k]['rsb'] - metrics_b[k]['rsb']
             table.append(metrics)
     return table
 
 
 @timer
-def diff_attribs(font_a, font_b):
+def diff_attribs(font_a, font_b, scale_upm=True):
     attribs_a = dump_attribs(font_a)
     attribs_b = dump_attribs(font_b)
 
-    modified = _modified_attribs(attribs_a, attribs_b)
+    upm_a = font_a['head'].unitsPerEm
+    upm_b = font_b['head'].unitsPerEm
+
+    attribs_a_h = {i['attrib']: i for i in attribs_a}
+    attribs_b_h = {i['attrib']: i for i in attribs_b}
+
+    modified = _modified_attribs(attribs_a_h, attribs_b_h,
+                                 upm_a, upm_b, scale_upm=scale_upm)
 
     Attribs = namedtuple('Attribs', ['modified'])
     return Attribs(modified)
 
 
-def _modified_attribs(attribs_a, attribs_b):
+def _modified_attribs(attribs_a, attribs_b,
+                      upm_a=None, upm_b=None, scale_upm=False):
 
-    attribs_a_h = {i['attrib']: i for i in attribs_a}
-    attribs_b_h = {i['attrib']: i for i in attribs_b}
-
-    shared = set(attribs_a_h.keys()) & set(attribs_b_h.keys())
+    shared = set(attribs_a.keys()) & set(attribs_b.keys())
 
     table = []
     for k in shared:
-        if attribs_a_h[k] != attribs_b_h[k]:
+        if scale_upm and upm_a and upm_b:
+            # If a font's upm changes the following attribs are not affected
+            keep = (
+                'modified',
+                'usBreakChar',
+                'ulUnicodeRange2',
+                'ulUnicodeRange1',
+                'tableVersion',
+                'usLastCharIndex',
+                'ulCodePageRange1',
+                'version',
+                'usMaxContex',
+                'usWidthClass',
+                'fsSelection',
+                'caretSlopeRise',
+                'usMaxContext',
+                'fontRevision',
+                'yStrikeoutSize',
+                'usWeightClass',
+                'unitsPerEm'
+            )
+            if attribs_a[k]['attrib'] not in keep and \
+               isinstance(attribs_a[k]['value'], (int, float)):
+                attribs_a[k]['value'] = (attribs_a[k]['value'] / float(upm_a)) * upm_b
+                attribs_b[k]['value'] = (attribs_b[k]['value'] / float(upm_b)) * upm_b
+
+        if attribs_a[k]['value'] != attribs_b[k]['value']:
             table.append({
-                "attrib": attribs_a_h[k]['attrib'],
-                "table": attribs_a_h[k]['table'],
-                "value_a": attribs_a_h[k]['value'],
-                "value_b": attribs_b_h[k]['value']
+                "attrib": attribs_a[k]['attrib'],
+                "table": attribs_a[k]['table'],
+                "value_a": attribs_a[k]['value'],
+                "value_b": attribs_b[k]['value']
             })
     return table
 
 
-def _modified_glyphs(glyphs_a, glyphs_b):
+def _modified_glyphs(glyphs_a, glyphs_b, thresh=1000,
+                     upm_a=None, upm_b=None, scale_upms=False):
 
     shared = set(glyphs_a.keys()) & set(glyphs_b.keys())
 
     table = []
     for k in shared:
-        if glyphs_a[k]['area'] != glyphs_b[k]['area']:
+        if scale_upms and upm_a and upm_b:
+            glyphs_a[k]['area'] = (glyphs_a[k]['area'] / upm_a) * upm_b
+            glyphs_b[k]['area'] = (glyphs_b[k]['area'] / upm_b) * upm_a
+
+        # using abs does not take into consideration if a curve is reversed
+        diff = abs(glyphs_b[k]['area']) - abs(glyphs_a[k]['area'])
+        if diff > thresh:
             table.append({
                 "glyph": glyphs_a[k]['glyph'],
-                "diff":  glyphs_b[k]['area'] - glyphs_a[k]['area']
+                "diff":  diff
             })
     return table
 
 
 @timer
-def diff_marks(font_a, font_b):
+def diff_marks(font_a, font_b, thresh=2, scale_upms=True):
     """Compare mark positioning differences.
 
     In order to flatten the class marks, the first mark glyph is chosen for
@@ -321,6 +383,9 @@ def diff_marks(font_a, font_b):
     marks_a = DumpMarks(font_a)
     marks_b = DumpMarks(font_b)
 
+    upm_a = font_a['head'].unitsPerEm
+    upm_b = font_b['head'].unitsPerEm
+
     marks_a = _compress_to_single_mark(marks_a)
     marks_b = _match_marks_in_table(marks_b, marks_a)
 
@@ -329,7 +394,8 @@ def diff_marks(font_a, font_b):
 
     missing = _subtract_items(marks_a_h, marks_b_h)
     new = _subtract_items(marks_b_h, marks_a_h)
-    modified = _modified_marks(marks_a_h, marks_b_h)
+    modified = _modified_marks(marks_a_h, marks_b_h, thresh,
+                               upm_a, upm_b, scale_upms=True)
 
     Marks = namedtuple('Marks', ['new', 'missing', 'modified'])
     return Marks(
@@ -339,26 +405,32 @@ def diff_marks(font_a, font_b):
     )
 
 
-def _modified_marks(marks_a, marks_b, ignore_thresh=8):
+def _modified_marks(marks_a, marks_b, thresh=8,
+                    upm_a=None, upm_b=None, scale_upms=False):
+
+    marks = ['base_x', 'base_y', 'mark_x', 'mark_y']
 
     shared = set(marks_a.keys()) & set(marks_b.keys())
 
     table = []
     for k in shared:
+        if scale_upms and upm_a and upm_b:
+            for mark in marks:
+                marks_a[k][mark] = (marks_a[k][mark] / float(upm_a)) * upm_a
+                marks_b[k][mark] = (marks_b[k][mark] / float(upm_b)) * upm_a
+
         offset_a_x = marks_a[k]['base_x'] - marks_a[k]['mark_x']
         offset_a_y = marks_a[k]['base_y'] - marks_a[k]['mark_y']
         offset_b_x = marks_b[k]['base_x'] - marks_b[k]['mark_x']
         offset_b_y = marks_b[k]['base_y'] - marks_b[k]['mark_y']
 
-        diff_x = offset_a_x != offset_b_x
-        diff_y = offset_a_y != offset_b_y
+        diff_x = offset_b_x - offset_a_x
+        diff_y = offset_b_y - offset_a_y
 
-        if diff_x or diff_y:
+        if abs(diff_x) + abs(diff_y) > thresh:
             mark = marks_a[k]
-            mark['diff_x'] = offset_b_x - offset_a_x
-            mark['diff_y'] = offset_b_y - offset_a_y
-            if abs(mark['diff_x']) + abs(mark['diff_y']) < ignore_thresh:
-                continue
+            mark['diff_x'] = diff_x
+            mark['diff_y'] = diff_y
             for pos in ['base_x', 'base_y', 'mark_x', 'mark_y']:
                 mark.pop(pos)
             table.append(mark)
