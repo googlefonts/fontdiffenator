@@ -30,7 +30,7 @@ def main():
     )
 
     output_lines = args.output_lines if args.output_lines else 1000
-    cli_reporter(args.font_a, args.font_b, comparison, output_lines)
+    print cli_reporter(args.font_a, args.font_b, comparison, output_lines)
 
 
 if __name__ == '__main__':
