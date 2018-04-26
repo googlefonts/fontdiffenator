@@ -6,7 +6,7 @@ import datetime
 import logging
 
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.WARN)
 logger = logging.getLogger(__name__)
 
 
@@ -133,5 +133,5 @@ def dump_attribs(font):
                     }
                     attribs.append(d)
                 except AttributeError:
-                    logger.warn("{} Missing attrib {}".format(tbl_tag, attr))
+                    logger.info("{} Missing attrib {}".format(tbl_tag, attr))
     return attribs
