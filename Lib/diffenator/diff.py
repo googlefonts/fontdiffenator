@@ -336,8 +336,8 @@ def _modified_attribs(attribs_a, attribs_b,
             )
             if attribs_a[k]['attrib'] not in keep and \
                isinstance(attribs_a[k]['value'], (int, float)):
-                attribs_a[k]['value'] = (attribs_a[k]['value'] / float(upm_a)) * upm_b
-                attribs_b[k]['value'] = (attribs_b[k]['value'] / float(upm_b)) * upm_b
+                attribs_a[k]['value'] = round((attribs_a[k]['value'] / float(upm_a)) * upm_b)
+                attribs_b[k]['value'] = round((attribs_b[k]['value'] / float(upm_b)) * upm_b)
 
         if attribs_a[k]['value'] != attribs_b[k]['value']:
             table.append({

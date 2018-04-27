@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from diff import diff_fonts
-from utils import cli_reporter
+from utils import diff_reporter
 import argparse
 
 
@@ -21,6 +21,8 @@ def main():
     parser.add_argument('font_a')
     parser.add_argument('font_b')
     parser.add_argument('-ol', '--output-lines', type=int, default=50)
+    parser.add_argument('-md', '--markdown', action='store_true',
+                        help="Output report as markdown.")
     args = parser.parse_args()
 
     comparison = diff_fonts(
@@ -29,7 +31,10 @@ def main():
     )
 
     output_lines = args.output_lines if args.output_lines else 1000
-    print cli_reporter(args.font_a, args.font_b, comparison, output_lines)
+    markdown = True if args.markdown else False
+    print diff_reporter(args.font_a, args.font_b, comparison,
+                        markdown=markdown,
+                        output_lines=output_lines)
 
 
 if __name__ == '__main__':
