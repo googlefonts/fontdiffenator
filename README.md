@@ -52,7 +52,6 @@ The developers of fontTools are working on [otlLib](https://github.com/fonttools
 ```
 $ virtualenv venv
 $ source venv/bin/activate
-$ pip install -r requirements.txt
 $ pip install . # -e . for dev installation
 ```
 
@@ -73,6 +72,10 @@ $ diffenator ./path/to/font_a.ttf ./path/to/font_b.ttf
 ```
 
 ## Running tests
+
+Tests are located in the /tests dir. Tests are based on the standard unittest framework.
+
 ```
-nosetests
+python /tests/test_diff.py
+python /tests/test_functionality.py
 ```

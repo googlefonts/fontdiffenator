@@ -3,7 +3,7 @@ contains a glyph object which contains the input, features for each glyph.
 """
 from fontTools.misc.py23 import unichr
 from fontTools.ttLib import TTFont
-from nototools.hb_input import HbInputGenerator
+from diffenator.hbinput import HbInputGenerator
 
 
 class InputFont(TTFont):
