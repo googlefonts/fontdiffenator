@@ -105,3 +105,20 @@ def dump_gpos_kerning(font):
         except KeyError:
             pass
     return kern_table_decomped
+
+
+def dump_table_kerning(font):
+    """Some fonts still contain kern tables. Most modern fonts include
+    kerning in the GPOS table"""
+    if not 'kern' in font:
+        return []
+    logger.warn('Font contains kern table. Newer fonts are GPOS only')
+    kerns = []
+    for table in font['kern'].kernTables:
+        for kern in table.kernTable:
+            kerns.append({
+                'left': font.input_map[kern[0]],
+                'right': font.input_map[kern[1]],
+                'value': table.kernTable[kern]
+            })
+    return kerns
