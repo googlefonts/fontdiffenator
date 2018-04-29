@@ -68,7 +68,7 @@ def _kern_class(class_definition):
     return classes
 
 
-def dump_kerning(font):
+def dump_gpos_kerning(font):
 
     if 'GPOS' not in font:
         logger.warning("Font doesn't have GPOS table. No kerns found")
