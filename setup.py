@@ -16,9 +16,6 @@ setup(
             "diffenator = diffenator.__main__:main",
         ],
     },
-    dependency_links=[
-        "git+https://github.com/googlei18n/nototools/tarball/master#egg=nototools-0.0.1",
-    ],
     install_requires=[
         "fonttools>=3.4.0",
     ],
