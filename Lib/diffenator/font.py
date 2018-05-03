@@ -81,7 +81,7 @@ class InputGenerator(HbInputGenerator):
 
         # check the substitution features
         inputs.extend(self._inputs_from_gsub(name, seen))
-        seen.remove(name)
+        # seen.remove(name)
 
         # since this method sometimes returns None to avoid cycles, the
         # recursive calls that it makes might have themselves returned None,

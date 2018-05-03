@@ -102,7 +102,11 @@ class HbInputGenerator(object):
 
         # check the substitution features
         inputs.extend(self._inputs_from_gsub(name, seen))
-        seen.remove(name)
+        # seen.remove(name)
+
+        # TODO (MFOLEY) report it gets stuck here ^
+        # disabling does no affect the output, infact it  stops the
+        # cycling which is what they want.
 
         # since this method sometimes returns None to avoid cycles, the
         # recursive calls that it makes might have themselves returned None,
