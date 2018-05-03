@@ -11,12 +11,6 @@ def glyph_area(glyphset, glyph):
 
 
 def dump_glyphs(font):
-    table = [r for r in font.input_map.values()]
     glyphset = font.getGlyphSet()
-
-    new_table = []
-    while table:
-        r = table.pop(0)
-        new_r = {'glyph': r, 'area': glyph_area(glyphset, r.name)}
-        new_table.append(new_r)
-    return new_table
+    return [{'glyph': glyph, 'area': glyph_area(glyphset, name)}
+            for name, glyph in sorted(font.input_map.items())]
