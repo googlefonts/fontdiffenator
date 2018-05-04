@@ -210,23 +210,30 @@ class TestMarks(unittest.TestCase):
     def test_missing_base_mark(self):
 
         font_a = mock_font(
-            glyphs=[('A', 100, 100), ('acutecomb', 0, 0)],
+            glyphs=[('A', 100, 100), ('acutecomb', 0, 0),
+                    ('O', 100, 100)],
             fea="""
             markClass [acutecomb] <anchor 150 -10> @top;
 
             feature mark {
-                pos base [A]
+                pos base [A O]
                  <anchor 85 354> mark @top;
             } mark;
             """
         )
         font_b = mock_font(
-            glyphs=[('a', 100, 100)]
+            glyphs=[('A', 100, 100), ('acutecomb', 0, 0)]
         )
 
         diff = diff_marks(font_a, font_b)
         missing = diff.missing
         self.assertNotEqual(missing, [])
+        # Diffenator will only return missing and new marks betweeen
+        # matching glyph sets. If font_b is missing many glyphs which
+        # have marks in font_a, these won't be reported. If the user
+        # add the glyphs to font_b without the marks, then it will
+        # get reported.
+        self.assertEqual(len(missing), 1)
 
     def test_modified_base_mark(self):
         font_a = mock_font(
@@ -289,10 +296,11 @@ class TestKerns(unittest.TestCase):
 
     def test_missing_kerns(self):
         font_a = mock_font(
-            glyphs=[('A', 50, 50), ('V', 50, 50)],
+            glyphs=[('A', 50, 50), ('V', 50, 50), ('Y', 50, 50)],
             fea="""
                 feature kern {
-                pos A V -120;} kern;
+                pos A V -120;
+                pos Y A -120;} kern;
             """
         )
         font_b = mock_font(
@@ -301,6 +309,9 @@ class TestKerns(unittest.TestCase):
         diff = diff_kerning(font_a, font_b)
         missing = diff.missing
         self.assertNotEqual(missing, [])
+        # Missing and new kerns are only reported for matching glyphs
+        # this is the same approach as the missing and new marks diff
+        self.assertEqual(len(missing), 1)
 
     def test_modified_kerns(self):
         font_a = mock_font(

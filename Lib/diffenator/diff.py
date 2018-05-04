@@ -214,8 +214,13 @@ def diff_kerning(font_a, font_b, thresh=2, scale_upms=True):
     upm_a = font_a['head'].unitsPerEm
     upm_b = font_b['head'].unitsPerEm
 
-    kern_a_h = {i['left'].kkey + i['right'].kkey: i for i in kern_a}
-    kern_b_h = {i['left'].kkey + i['right'].kkey: i for i in kern_b}
+    charset_a = set([font_a.input_map[g].kkey for g in font_a.input_map])
+    charset_b = set([font_b.input_map[g].kkey for g in font_b.input_map])
+
+    kern_a_h = {i['left'].kkey + i['right'].kkey: i for i in kern_a
+                if i['left'].kkey in charset_b and i['right'].kkey in charset_b}
+    kern_b_h = {i['left'].kkey + i['right'].kkey: i for i in kern_b
+                if i['left'].kkey in charset_b and i['right'].kkey in charset_a}
 
     missing = _subtract_items(kern_a_h, kern_b_h)
     new = _subtract_items(kern_b_h, kern_a_h)
@@ -397,8 +402,13 @@ def diff_marks(font_a, font_b, thresh=2, scale_upms=True):
     marks_a = _compress_to_single_mark(marks_a)
     marks_b = _match_marks_in_table(marks_b, marks_a)
 
-    marks_a_h = {i['base_glyph'].kkey+i['mark_glyph'].kkey: i for i in marks_a}
-    marks_b_h = {i['base_glyph'].kkey+i['mark_glyph'].kkey: i for i in marks_b}
+    charset_a = set([font_a.input_map[g].kkey for g in font_a.input_map])
+    charset_b = set([font_b.input_map[g].kkey for g in font_b.input_map])
+
+    marks_a_h = {i['base_glyph'].kkey+i['mark_glyph'].kkey: i for i in marks_a
+                 if i['base_glyph'].kkey in charset_b and i['mark_glyph'].kkey in charset_b}
+    marks_b_h = {i['base_glyph'].kkey+i['mark_glyph'].kkey: i for i in marks_b
+                 if i['base_glyph'].kkey in charset_a and i['mark_glyph'].kkey in charset_a}
 
     missing = _subtract_items(marks_a_h, marks_b_h)
     new = _subtract_items(marks_b_h, marks_a_h)
