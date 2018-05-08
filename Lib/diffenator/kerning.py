@@ -1,7 +1,11 @@
 """Dump a font's GPOS kerning.
 
 TODO (Marc Foley) Flattening produced too much output. Perhaps it's better
-to keep the classes and map each class to a single glyph."""
+to keep the classes and map each class to a single glyph.
+
+Perhaps it would be better to combine our efforts and help improve
+https://github.com/adobe-type-tools/kern-dump which has similar
+functionality"""
 import logging
 
 logger = logging.getLogger(__name__)
@@ -35,8 +39,8 @@ def _flatten_pair_kerning(table, results):
 def _flatten_class_kerning(table, results):
     """Flatten class on class kerning"""
     seen = set(results)
-    classes1 = _kern_class(table.ClassDef1.classDefs)
-    classes2 = _kern_class(table.ClassDef2.classDefs)
+    classes1 = _kern_class(table.ClassDef1.classDefs, table.Coverage.glyphs)
+    classes2 = _kern_class(table.ClassDef2.classDefs, table.Coverage.glyphs)
 
     for idx1, class1 in enumerate(table.Class1Record):
         for idx2, class2 in enumerate(class1.Class2Record):
@@ -46,7 +50,9 @@ def _flatten_class_kerning(table, results):
             if idx2 not in classes2:
                 continue
 
-            if class2.Value1.XAdvance != 0:
+            if not hasattr(class2.Value1, 'XAdvance'):
+                continue
+            if abs(class2.Value1.XAdvance) > 0:
                 for glyph1 in classes1[idx1]:
                     for glyph2 in classes2[idx2]:
 
@@ -56,15 +62,23 @@ def _flatten_class_kerning(table, results):
                             seen.add(kern)
 
 
-def _kern_class(class_definition):
+def _kern_class(class_definition, coverage_glyphs):
     """Transpose a ttx classDef
 
-    {glyph_name: idx, glyph_name: idx} --> {idx: [glyph_name, glyph_name]}"""
+    {glyph_name: idx, glyph_name: idx} --> {idx: [glyph_name, glyph_name]}
+
+    Classdef 0 is not defined in the font. It is created by subtracting
+    the glyphs found in the lookup coverage against all the glyphs used to
+    define the other classes."""
     classes = {}
+    seen_glyphs = set()
     for glyph, idx in class_definition.items():
         if idx not in classes:
             classes[idx] = []
         classes[idx].append(glyph)
+        seen_glyphs.add(glyph)
+
+    classes[0] = set(coverage_glyphs) - seen_glyphs
     return classes
 
 

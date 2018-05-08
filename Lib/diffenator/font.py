@@ -11,7 +11,6 @@ class InputFont(TTFont):
     a glyph. This object will be deprecated once otLib progresses"""
     def __init__(self, file=None, lazy=False):
         super(InputFont, self).__init__(file, lazy=False)
-        self.teko = 10
         self._input_map = self._gen_inputs() if file else []
 
     @property
