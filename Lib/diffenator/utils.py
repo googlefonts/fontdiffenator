@@ -68,7 +68,7 @@ def _assemble_cli_row(t_format, row, columns, clip_col=False):
 
 
 def diff_reporter(font_a, font_b, comp_data,
-                  markdown=False, output_lines=10):
+                  markdown=False, output_lines=10, verbose=False):
     """Generate a cli report"""
     report = []
     h1 = '# ' if markdown else ''
@@ -96,7 +96,7 @@ def diff_reporter(font_a, font_b, comp_data,
                         column_mapping[(category, sub_category)],
                         markdown=markdown)
                 )
-            else:
+            elif verbose:
                 report.append('\n\n**%s %s**\n' % (category, sub_category))
                 report.append('No differences')
     return ''.join(report)

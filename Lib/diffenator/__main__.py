@@ -23,6 +23,8 @@ def main():
     parser.add_argument('-ol', '--output-lines', type=int, default=50)
     parser.add_argument('-md', '--markdown', action='store_true',
                         help="Output report as markdown.")
+    parser.add_argument('-v', '--verbose', action='store_true',
+                        help='Report diffs which are the same')
     args = parser.parse_args()
 
     comparison = diff_fonts(
@@ -32,9 +34,11 @@ def main():
 
     output_lines = args.output_lines if args.output_lines else 1000
     markdown = True if args.markdown else False
+    is_verbose = True if args.verbose else False
     print diff_reporter(args.font_a, args.font_b, comparison,
                         markdown=markdown,
-                        output_lines=output_lines)
+                        output_lines=output_lines,
+                        verbose=is_verbose)
 
 
 if __name__ == '__main__':
