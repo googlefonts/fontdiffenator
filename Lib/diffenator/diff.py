@@ -417,8 +417,8 @@ def diff_marks(font_a, font_b, thresh=2, scale_upms=True):
 
     Marks = namedtuple('Marks', ['new', 'missing', 'modified'])
     return Marks(
-        sorted(new, key=lambda k: k['base_glyph'].name, reverse=True),
-        sorted(missing, key=lambda k: k['base_glyph'].name, reverse=True),
+        sorted(new, key=lambda k: k['base_glyph'].name),
+        sorted(missing, key=lambda k: k['base_glyph'].name),
         sorted(modified, key=lambda k: abs(k['diff_x']) + abs(k['diff_y']), reverse=True)
     )
 
