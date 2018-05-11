@@ -1,6 +1,4 @@
-"""Dump a font's mark and mkmk feature
-
-TODO (M FOLEY) add mkmk feature."""
+"""Dump a font's mark and mkmk feature"""
 import logging
 
 logger = logging.getLogger(__name__)
@@ -11,13 +9,16 @@ class DumpMarks:
     def __init__(self, font):
         self._font = font
         self._lookups = self._get_lookups() if 'GPOS' in font.keys() else []
+
         self._base = []
-        self._base_anchors = []
-        self._mark_anchors = []
         self._marks = []
+
+        self._mark1 = []
+        self._mark2 = []
         self._get_groups()
-        self._base_table = self._gen_base_table()
-        self._mark_table = self._gen_mark_table()
+
+        self._mark_table = self._gen_table(self._base, self._marks)
+        self._mkmk_table = self._gen_table(self._mark1, self._mark2)
 
     @property
     def base_groups(self):
@@ -28,43 +29,22 @@ class DumpMarks:
         return self._marks
 
     @property
-    def base_table(self):
-        return self._base_table
-
-    @property
     def mark_table(self):
         return self._mark_table
 
-    def flatten_groups(self):
-        pass
-
     @property
-    def base_anchors(self):
-        if not self._base_anchors:
-            self._base_anchors = self._ungroup_anchors(self._base)
-        return self._base_anchors
-
-    @property
-    def mark_anchors(self):
-        if not self._mark_anchors:
-            self._mark_anchors = self._ungroup_anchors(self._marks)
-        return self._mark_anchors
-
-    def _ungroup_anchors(self, anchors_group):
-        anchors = []
-        for lookup in anchors_group:
-            for idx in lookup:
-                anchors += lookup[idx]
-        return anchors
+    def mkmk_table(self):
+        return self._mkmk_table
 
     def _get_lookups(self):
-        """Return the lookups used for the mark feature"""
+        """Return the lookups used for the mark and mkmk feature"""
         gpos = self._font['GPOS']
+        lookups = []
         lookup_idxs = []
         for feat in gpos.table.FeatureList.FeatureRecord:
-            if feat.FeatureTag == 'mark':
-                lookup_idxs = feat.Feature.LookupListIndex
-        lookups = []
+            if feat.FeatureTag in ['mark', 'mkmk']:
+                lookup_idxs += feat.Feature.LookupListIndex
+
         for idx in lookup_idxs:
             lookups.append(gpos.table.LookupList.Lookup[idx])
         if len(lookups) == 0:
@@ -74,6 +54,7 @@ class DumpMarks:
     def _get_groups(self):
         for lookup in self._lookups:
             for sub_table in lookup.SubTable:
+                # get mark marks
                 if sub_table.Format == 1 and sub_table.LookupType == 4:
                     base_lookup_anchors = self._get_base_anchors(
                         sub_table.BaseCoverage.glyphs,
@@ -86,16 +67,37 @@ class DumpMarks:
                     self._base.append(base_lookup_anchors)
                     self._marks.append(mark_lookup_anchors)
 
-    def _get_base_anchors(self, glyph_list, anchors_list):
+                # get mkmk marks
+                if sub_table.Format == 1 and sub_table.LookupType == 6:
+                    mark1_lookup_anchors = self._get_mark_anchors(
+                        sub_table.Mark1Coverage.glyphs,
+                        sub_table.Mark1Array.MarkRecord
+                    )
+                    mark2_lookup_anchors = self._get_base_anchors(
+                        sub_table.Mark2Coverage.glyphs,
+                        sub_table.Mark2Array.Mark2Record,
+                        anc_type='Mark2Anchor'
+                    )
+                    self._mark1.append(mark1_lookup_anchors)
+                    self._mark2.append(mark2_lookup_anchors)
+
+    def _get_base_anchors(self, glyph_list, anchors_list,
+                          anc_type='BaseAnchor'):
+        """
+        rtype:
+        {0: [{'class': 0, 'glyph': 'A', 'x': 199, 'y': 0}],
+        {1: [{'class': 0, 'glyph': 'C', 'x': 131, 'y': 74}],
+         """
         _anchors = {}
         for glyph, anchors in zip(glyph_list, anchors_list):
-            for idx, anchor in enumerate(anchors.BaseAnchor):
+            anchors = getattr(anchors, anc_type)
+            for idx, anchor in enumerate(anchors):
 
                 if idx not in _anchors:
                     _anchors[idx] = []
                 _anchors[idx].append({
                     'class': idx,
-                    'name': self._font.input_map[glyph],
+                    'glyph': self._font.input_map[glyph],
                     'x': anchor.XCoordinate,
                     'y': anchor.YCoordinate
                 })
@@ -112,75 +114,38 @@ class DumpMarks:
             if anchor.Class not in _anchors:
                 _anchors[anchor.Class] = []
             _anchors[anchor.Class].append({
-                'name': self._font.input_map[glyph],
+                'glyph': self._font.input_map[glyph],
                 'class': anchor.Class,
                 'x': anchor.MarkAnchor.XCoordinate,
                 'y': anchor.MarkAnchor.YCoordinate
             })
         return _anchors
 
-    def _gen_base_table(self):
-        """Return a table consisting of base_glyphs with their corresponding
-        mark attachments.
+    def _gen_table(self, anchors1, anchors2):
+        """Return a flattened table consisting of mark1_glyphs with their
+        attached mark2_glyphs.
 
+        rtype:
         [
-            {'base_glyph': 'a',
-             'base_x': 0,
-             'base_y': 0,
-             'mark_glyphs': [
-                 {
-                     'mark_glyph': 'uni0300',
-                     'mark_x': 100,
-                     'mark_y': 100
-                 },
-                 {
-                     'mark_glyph': 'uni0301',
-                     'mark_x': 100,
-                     'mark_y': 100
-                 },
-            ]},
-            {'base_glyph': 'o',
-             'base_x': 0,
-             'base_y': 0,
-             'mark_glyphs': [
-                 {
-                     'mark_glyph': 'uni0300',
-                     'mark_x': 100,
-                     'mark_y': 100
-                 },
-                 {
-                     'mark_glyph': 'uni0301',
-                     'mark_x': 100,
-                     'mark_y': 100
-                 },
-            ]},
+            {'mark1_glyph': 'a', 'mark1_x': 300, 'mark1_y': 450,
+             'mark2_glyph': 'acutecomb', 'mark2_x': 0, 'mark2_y': 550},
+            {'mark1_glyph': 'a', 'mark1_x': 300, 'mark1_y': 450,
+             'mark2_glyph': 'gravecomb', 'mark2_x': 0, 'mark2_y': 550},
         ]
         """
         table = []
-        for l_idx in range(len(self._base)):
-            for m_group in self._base[l_idx]:
-                for glyph in self._base[l_idx][m_group]:
-                    table.append({
-                        'base_glyph': glyph['name'],
-                        'base_x': glyph['x'],
-                        'base_y': glyph['y'],
-                        'mark_glyphs': self._marks[l_idx][m_group]
-                    })
-        return table
+        for l_idx in range(len(anchors1)):
+            for m_group in anchors1[l_idx]:
 
-    def _gen_mark_table(self):
-        """Return a table of mark positioned base glyphs."""
-        table = []
-        seen = set()
-        for l_idx in range(len(self._marks)):
-            for m_group in self._marks[l_idx]:
-                for glyph in self._marks[l_idx][m_group]:
-                    if glyph['name'] not in seen:
-                        seen.add(glyph['name'])
+                for anchor in anchors1[l_idx][m_group]:
+                    for anchor2 in anchors2[l_idx][m_group]:
+
                         table.append({
-                            'mark_glyph': glyph['name'],
-                            'mark_x': glyph['x'],
-                            'mark_y': glyph['y'],
-                            'base_glyphs': self._base[l_idx][m_group],
+                            'mark1_glyph': anchor['glyph'],
+                            'mark1_x': anchor['x'],
+                            'mark1_y': anchor['y'],
+                            'mark2_glyph': anchor2['glyph'],
+                            'mark2_x': anchor2['x'],
+                            'mark2_y': anchor2['y']
                         })
         return table

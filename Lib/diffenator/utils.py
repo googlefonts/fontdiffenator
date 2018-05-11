@@ -3,18 +3,29 @@ import os
 
 column_mapping = {
     ('attribs', 'modified'): ['table', 'attrib', 'value_a', 'value_b'],
+
     ('metrics', 'modified'): ['glyph', 'diff_adv', 'diff_lsb', 'diff_rsb'],
+
     ('kern', 'modified'): ['left', 'right', 'diff'],
     ('kern', 'new'): ['left', 'right', 'value'],
     ('kern', 'missing'): ['left', 'right', 'value'],
-    ('marks', 'modified'): ['base_glyph', 'mark_glyph', 'diff_x', 'diff_y'],
-    ('marks', 'new'): ['base_glyph', 'mark_glyph', 'base_x',
-                       'base_y', 'mark_x', 'mark_y'],
-    ('marks', 'missing'): ['base_glyph', 'mark_glyph', 'base_x',
-                           'base_y', 'mark_x', 'mark_y'],
+
+    ('marks', 'modified'): ['mark1_glyph', 'mark2_glyph', 'diff_x', 'diff_y'],
+    ('marks', 'new'): ['mark1_glyph', 'mark2_glyph', 'mark1_x',
+                       'mark1_y', 'mark2_x', 'mark2_y'],
+    ('marks', 'missing'): ['mark1_glyph', 'mark2_glyph', 'mark1_x',
+                           'mark1_y', 'mark2_x', 'mark2_y'],
+
+    ('mkmks', 'modified'): ['mark1_glyph', 'mark2_glyph', 'diff_x', 'diff_y'],
+    ('mkmks', 'new'): ['mark1_glyph', 'mark2_glyph', 'mark1_x',
+                       'mark1_y', 'mark2_x', 'mark2_y'],
+    ('mkmks', 'missing'): ['mark1_glyph', 'mark2_glyph', 'mark1_x',
+                           'mark1_y', 'mark2_x', 'mark2_y'],
+
     ('glyphs', 'modified'): ['glyph', 'diff'],
     ('glyphs', 'new'): ['glyph'],
     ('glyphs', 'missing'): ['glyph'],
+
     ('names', 'modified'): ['id', 'string_a', 'string_b'],
     ('names', 'new'): ['id', 'string'],
     ('names', 'missing'): ['id', 'string'],

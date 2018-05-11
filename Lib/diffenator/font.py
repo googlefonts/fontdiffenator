@@ -40,6 +40,7 @@ class InputGenerator(HbInputGenerator):
             cur_input = self.input_from_name(name, pad=is_zero_width)
             if cur_input is not None:
                 features, characters = cur_input
+                characters = characters.replace(' ', '')
                 inputs.append(Glyph(name, features, characters))
             else:
                 inputs.append(Glyph(name, '', ''))

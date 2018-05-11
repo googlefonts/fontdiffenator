@@ -120,11 +120,15 @@ def diff_fonts(font_a_path, font_b_path):
     font_a = InputFont(font_a_path)
     font_b = InputFont(font_b_path)
 
+    marks_a = DumpMarks(font_a)
+    marks_b = DumpMarks(font_b)
+
     comparisons = ['new', 'missing', 'modified']
     diffs = [
         ('kern', diff_kerning(font_a, font_b)),
         ('metrics', diff_metrics(font_a, font_b)),
-        ('marks', diff_marks(font_a, font_b)),
+        ('marks', diff_marks(font_a, font_b, marks_a.mark_table, marks_b.mark_table)),
+        ('mkmks', diff_marks(font_a, font_b, marks_a.mkmk_table, marks_b.mkmk_table)),
         ('attribs', diff_attribs(font_a, font_b)),
         ('glyphs', diff_glyphs(font_a, font_b)),
         ('names', diff_nametable(font_a, font_b)),
@@ -384,31 +388,21 @@ def _modified_glyphs(glyphs_a, glyphs_b, thresh=1000,
 
 
 @timer
-def diff_marks(font_a, font_b, thresh=2, scale_upms=True):
+def diff_marks(font_a, font_b, marks_a, marks_b, thresh=2, scale_upms=True):
     """Compare mark positioning differences.
 
-    In order to flatten the class marks, the first mark glyph is chosen for
-    marks_a, marks_b will then be flattened using the same mark.
-
-    TODO (M Foley) this approach won't work if marks_b doesn't contain the
-    mark chosen in marks_a.
+    Marks are flattened
     """
-    marks_a = DumpMarks(font_a)
-    marks_b = DumpMarks(font_b)
-
     upm_a = font_a['head'].unitsPerEm
     upm_b = font_b['head'].unitsPerEm
-
-    marks_a = _compress_to_single_mark(marks_a)
-    marks_b = _match_marks_in_table(marks_b, marks_a)
 
     charset_a = set([font_a.input_map[g].kkey for g in font_a.input_map])
     charset_b = set([font_b.input_map[g].kkey for g in font_b.input_map])
 
-    marks_a_h = {i['base_glyph'].kkey+i['mark_glyph'].kkey: i for i in marks_a
-                 if i['base_glyph'].kkey in charset_b and i['mark_glyph'].kkey in charset_b}
-    marks_b_h = {i['base_glyph'].kkey+i['mark_glyph'].kkey: i for i in marks_b
-                 if i['base_glyph'].kkey in charset_a and i['mark_glyph'].kkey in charset_a}
+    marks_a_h = {i['mark1_glyph'].kkey+i['mark2_glyph'].kkey: i for i in marks_a
+                 if i['mark1_glyph'].kkey in charset_b and i['mark2_glyph'].kkey in charset_b}
+    marks_b_h = {i['mark1_glyph'].kkey+i['mark2_glyph'].kkey: i for i in marks_b
+                 if i['mark1_glyph'].kkey in charset_a and i['mark2_glyph'].kkey in charset_a}
 
     missing = _subtract_items(marks_a_h, marks_b_h)
     new = _subtract_items(marks_b_h, marks_a_h)
@@ -417,8 +411,8 @@ def diff_marks(font_a, font_b, thresh=2, scale_upms=True):
 
     Marks = namedtuple('Marks', ['new', 'missing', 'modified'])
     return Marks(
-        sorted(new, key=lambda k: k['base_glyph'].name),
-        sorted(missing, key=lambda k: k['base_glyph'].name),
+        sorted(new, key=lambda k: k['mark1_glyph'].name),
+        sorted(missing, key=lambda k: k['mark1_glyph'].name),
         sorted(modified, key=lambda k: abs(k['diff_x']) + abs(k['diff_y']), reverse=True)
     )
 
@@ -426,7 +420,7 @@ def diff_marks(font_a, font_b, thresh=2, scale_upms=True):
 def _modified_marks(marks_a, marks_b, thresh=8,
                     upm_a=None, upm_b=None, scale_upms=False):
 
-    marks = ['base_x', 'base_y', 'mark_x', 'mark_y']
+    marks = ['mark1_x', 'mark1_y', 'mark2_x', 'mark2_y']
 
     shared = set(marks_a.keys()) & set(marks_b.keys())
 
@@ -437,10 +431,10 @@ def _modified_marks(marks_a, marks_b, thresh=8,
                 marks_a[k][mark] = (marks_a[k][mark] / float(upm_a)) * upm_a
                 marks_b[k][mark] = (marks_b[k][mark] / float(upm_b)) * upm_a
 
-        offset_a_x = marks_a[k]['base_x'] - marks_a[k]['mark_x']
-        offset_a_y = marks_a[k]['base_y'] - marks_a[k]['mark_y']
-        offset_b_x = marks_b[k]['base_x'] - marks_b[k]['mark_x']
-        offset_b_y = marks_b[k]['base_y'] - marks_b[k]['mark_y']
+        offset_a_x = marks_a[k]['mark1_x'] - marks_a[k]['mark2_x']
+        offset_a_y = marks_a[k]['mark1_y'] - marks_a[k]['mark2_y']
+        offset_b_x = marks_b[k]['mark1_x'] - marks_b[k]['mark2_x']
+        offset_b_y = marks_b[k]['mark1_y'] - marks_b[k]['mark2_y']
 
         diff_x = offset_b_x - offset_a_x
         diff_y = offset_b_y - offset_a_y
@@ -449,47 +443,7 @@ def _modified_marks(marks_a, marks_b, thresh=8,
             mark = marks_a[k]
             mark['diff_x'] = diff_x
             mark['diff_y'] = diff_y
-            for pos in ['base_x', 'base_y', 'mark_x', 'mark_y']:
+            for pos in ['mark1_x', 'mark1_y', 'mark2_x', 'mark2_y']:
                 mark.pop(pos)
             table.append(mark)
     return table
-
-
-def _compress_to_single_mark(table):
-    """table = [
-        {'base_glyph': 'x', 'base_x': 0, 'base_y': 0, 'mark_glyphs': [...]}
-    ] -->
-    table = [
-        {'base_glyph': 'x', 'base_x': 0, 'base_y': 0,
-         'mark_glyph': 'uni0300', 'mark_x': 0, 'mark_y': 0}
-    ]
-    """
-    new_table = []
-    for row in table.base_table:
-        row['mark_glyph'] = row['mark_glyphs'][0]['name']
-        row['mark_x'] = row['mark_glyphs'][0]['x']
-        row['mark_y'] = row['mark_glyphs'][0]['y']
-        del row['mark_glyphs']
-        new_table.append(row)
-    return new_table
-
-
-def _match_marks_in_table(table, table2):
-    """Reduce 'mark_glyphs' list to a single 'mark_glyph' by matching
-    the 'mark_glyph' in table2."""
-    marks_to_match = set([r['mark_glyph'].kkey for r in table2])
-
-    new_table = []
-    for row in table.base_table:
-        for idx, mark in enumerate(row['mark_glyphs']):
-            if mark['name'].kkey in marks_to_match:
-                row['mark_glyph'] = row['mark_glyphs'][idx]['name']
-                row['mark_x'] = row['mark_glyphs'][idx]['x']
-                row['mark_y'] = row['mark_glyphs'][idx]['y']
-                del row['mark_glyphs']
-                break
-        if 'mark_glyphs' in row.keys():
-            del row
-        else:
-            new_table.append(row)
-    return new_table

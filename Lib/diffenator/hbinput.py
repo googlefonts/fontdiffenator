@@ -259,7 +259,6 @@ class HbInputGenerator(object):
 
     def _input_from_6_3(self, gsub, st, glyphs, target_i, cur_i, seen):
         """Return inputs from GSUB type 6.3 (coverage-based chaining) rules."""
-
         input_lists = [c.glyphs for c in st.InputCoverage]
         input_glyphs = self._min_permutation(input_lists, glyphs)
         if not (any(subst_lookup.LookupListIndex == target_i

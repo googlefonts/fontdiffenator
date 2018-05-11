@@ -1,7 +1,7 @@
 import unittest
 from mockfont import mock_font
 from diffenator.kerning import dump_gpos_kerning
-
+from diffenator.marks import DumpMarks
 
 class TestGposKerningDump(unittest.TestCase):
 
@@ -45,6 +45,42 @@ class TestGposKerningDump(unittest.TestCase):
         generate kerns in this manner (citation/prood needed).
         """
         pass
+
+
+class TestGposMarkDump(unittest.TestCase):
+
+    def test_mark(self):
+        font = mock_font(
+            attrs=[('head', 'unitsPerEm', 1000)],
+            glyphs=[('A', 100, 100), ('Aacute', 100, 100), ('acutecomb', 0, 0)],
+            fea="""
+            markClass [acutecomb] <anchor 150 0> @top;
+
+            feature mark {
+                pos base [A Aacute]
+                 <anchor 100 300> mark @top;
+            } mark;
+            """
+        )
+        marks = DumpMarks(font)
+        self.assertEqual(len(marks.mark_table), 2)
+
+    def test_mkmk(self):
+        font = mock_font(
+            attrs=[('head', 'unitsPerEm', 1000)],
+            glyphs=[('gravecomb', 0, 0), ('acutecomb', 0, 0)],
+            fea="""
+            markClass [acutecomb gravecomb] <anchor 150 0> @top;
+
+            feature mkmk {
+                pos mark @top
+                 <anchor 100 300> mark @top;
+            } mkmk;
+            """
+        )
+        marks = DumpMarks(font)
+        self.assertEqual(len(marks.mkmk_table), 4)
+
 
 if __name__ == '__main__':
     unittest.main()

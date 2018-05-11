@@ -10,9 +10,8 @@ Most differs will only compare glyphs if they have matching names. Diffenator ma
 
 **Mark positioning**
 
-Marks coordinates are related to the glyph's outlines; not the metrics.
+Marks coordinates are relative to the glyph's outlines; not the glyph metrics.
 
-A single matching glyph is chosen from each mark class; thus keeping the output compact.
 
 **Kerning**
 
@@ -38,7 +37,6 @@ This example won't produce a match, visually they will appear the same.
 ## Limitations
 
 - gsub_diff: Cannot parse gsub rules LookupTypes 5, 6, 8
-- mkmk still needs implementing
 
 
 ## Future work

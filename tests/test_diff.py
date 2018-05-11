@@ -1,5 +1,6 @@
 import unittest
 from mockfont import mock_font
+from diffenator.marks import DumpMarks
 from diffenator.diff import (
     diff_nametable,
     diff_attribs,
@@ -158,8 +159,10 @@ class TestMarks(unittest.TestCase):
         font_b = mock_font(
             glyphs=[('A', 100, 100), ('acutecomb', 0, 0)]
         )
+        marks_a = DumpMarks(font_a)
+        marks_b = DumpMarks(font_b)
 
-        diff = diff_marks(font_a, font_b)
+        diff = diff_marks(font_a, font_b, marks_a.mark_table, marks_b.mark_table)
         missing = diff.missing
         self.assertNotEqual(missing, [])
         # Diffenator will only return missing and new marks betweeen
@@ -192,7 +195,10 @@ class TestMarks(unittest.TestCase):
             } mark;
             """
         )
-        diff = diff_marks(font_a, font_b)
+        marks_a = DumpMarks(font_a)
+        marks_b = DumpMarks(font_b)
+
+        diff = diff_marks(font_a, font_b, marks_a.mark_table, marks_b.mark_table)
         modified = diff.modified
         self.assertNotEqual(modified, [])
 
@@ -221,9 +227,68 @@ class TestMarks(unittest.TestCase):
             } mark;
             """
         )
-        diff = diff_marks(font_a, font_b)
+        marks_a = DumpMarks(font_a)
+        marks_b = DumpMarks(font_b)
+
+        diff = diff_marks(font_a, font_b, marks_a.mark_table, marks_b.mark_table)
         modified = diff.modified
         self.assertEqual(modified, [])
+
+
+class TestMkMks(unittest.TestCase):
+
+    def test_missing_mkmks(self):
+        font_a = mock_font(
+            glyphs=[('acutecomb', 0, 0), ('gravecomb', 0, 0)],
+            fea="""
+            markClass [acutecomb gravecomb] <anchor 150 -10> @top;
+
+            feature mark {
+                pos mark @top
+                 <anchor 85 354> mark @top;
+            } mark;
+            """
+        )
+        font_b = mock_font(
+            glyphs=[('acutecomb', 0, 0)]
+        )
+        marks_a = DumpMarks(font_a)
+        marks_b = DumpMarks(font_b)
+
+        diff = diff_marks(font_a, font_b, marks_a.mkmk_table, marks_b.mkmk_table)
+        missing = diff.missing
+        self.assertNotEqual(missing, [])
+
+    def test_modified_mkmks(self):
+        font_a = mock_font(
+            glyphs=[('acutecomb', 0, 0), ('gravecomb', 0, 0)],
+            fea="""
+            markClass [acutecomb gravecomb] <anchor 150 -10> @top;
+
+            feature mark {
+                pos mark @top
+                 <anchor 85 354> mark @top;
+            } mark;
+            """
+        )
+        font_b = mock_font(
+            glyphs=[('acutecomb', 0, 0), ('gravecomb', 0, 0)],
+            fea="""
+            markClass [acutecomb gravecomb] <anchor 0 -10> @top;
+
+            feature mark {
+                pos mark @top
+                 <anchor 85 354> mark @top;
+            } mark;
+            """
+        )
+        marks_a = DumpMarks(font_a)
+        marks_b = DumpMarks(font_b)
+
+        diff = diff_marks(font_a, font_b, marks_a.mkmk_table, marks_b.mkmk_table)
+        modified = diff.modified
+        self.assertNotEqual(modified, [])
+        self.assertEqual(len(modified), 4)
 
 
 class TestKerns(unittest.TestCase):
