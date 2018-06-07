@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from diff import diff_fonts
+from utils import diff_reporter
 import argparse
 
 
@@ -20,32 +21,24 @@ def main():
     parser.add_argument('font_a')
     parser.add_argument('font_b')
     parser.add_argument('-ol', '--output-lines', type=int, default=50)
+    parser.add_argument('-md', '--markdown', action='store_true',
+                        help="Output report as markdown.")
+    parser.add_argument('-v', '--verbose', action='store_true',
+                        help='Report diffs which are the same')
     args = parser.parse_args()
 
     comparison = diff_fonts(
         args.font_a,
         args.font_b,
-        rendered_diffs=False
     )
-    
+
     output_lines = args.output_lines if args.output_lines else 1000
-    cli_report(args.font_a, args.font_b, comparison, output_lines)
-
-
-def cli_report(font_a, font_b, comp_data, output_lines=20):
-    """Generate a report wip"""
-    # TODO (m4rc1e): turn into decent report with good formatting.
-    print '%s vs %s' % (font_a, font_b)
-    for category in comp_data:
-        if comp_data[category]:
-            print '\n***%s: %s differences***' % (
-                category, len(comp_data[category])
-            )
-            for comp in comp_data[category][:output_lines]:
-                print comp
-        else:
-            print '\n***%s***' % category
-            print 'No differences'
+    markdown = True if args.markdown else False
+    is_verbose = True if args.verbose else False
+    print diff_reporter(args.font_a, args.font_b, comparison,
+                        markdown=markdown,
+                        output_lines=output_lines,
+                        verbose=is_verbose)
 
 
 if __name__ == '__main__':
