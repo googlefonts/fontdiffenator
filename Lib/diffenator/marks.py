@@ -54,6 +54,10 @@ class DumpMarks:
     def _get_groups(self):
         for lookup in self._lookups:
             for sub_table in lookup.SubTable:
+
+                if hasattr(sub_table, 'ExtSubTable'):
+                    sub_table = sub_table.ExtSubTable
+
                 # get mark marks
                 if sub_table.Format == 1 and sub_table.LookupType == 4:
                     base_lookup_anchors = self._get_base_anchors(
