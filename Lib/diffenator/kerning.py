@@ -108,17 +108,14 @@ def dump_gpos_kerning(font):
             if hasattr(sub_table, 'ClassDef2'):
                 _flatten_class_kerning(sub_table, kern_table)
 
-    kern_table = [{'left': k[0], 'right': k[1], 'value': k[2]} for k in kern_table]
-
-    kern_table_decomped = []
-    for idx, kern in enumerate(kern_table):
-        try:
-            kern_table[idx]['left'] = font.input_map[kern['left']]
-            kern_table[idx]['right'] = font.input_map[kern['right']]
-            kern_table_decomped.append(kern_table[idx])
-        except KeyError:
-            pass
-    return kern_table_decomped
+    kern_table = [{
+        'left': font.input_map[left],
+        'right': font.input_map[right],
+        'value': val,
+        'string': font.input_map[left].characters + \
+                  font.input_map[right].characters}
+                  for left, right, val in kern_table]
+    return kern_table
 
 
 def dump_table_kerning(font):
@@ -133,6 +130,8 @@ def dump_table_kerning(font):
             kerns.append({
                 'left': font.input_map[kern[0]],
                 'right': font.input_map[kern[1]],
-                'value': table.kernTable[kern]
+                'value': table.kernTable[kern],
+                'string': font.input_map[kern[0]].characters + \
+                          font.intput_map[kern[1]].characters
             })
     return kerns

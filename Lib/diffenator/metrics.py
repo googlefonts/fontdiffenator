@@ -9,7 +9,8 @@ def glyph_metrics(font, glyph):
     rsb = _glyph_rsb(font, glyph)
     adv = _glyph_adv_width(font, glyph)
     return {'glyph': font.input_map[glyph],
-            'lsb': lsb, 'rsb': rsb, 'adv': adv}
+            'lsb': lsb, 'rsb': rsb, 'adv': adv,
+            'string': font.input_map[glyph].characters}
 
 
 def dump_glyph_metrics(font):
