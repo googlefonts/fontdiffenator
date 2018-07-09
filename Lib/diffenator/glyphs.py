@@ -12,5 +12,5 @@ def glyph_area(glyphset, glyph):
 
 def dump_glyphs(font):
     glyphset = font.getGlyphSet()
-    return [{'glyph': glyph, 'area': glyph_area(glyphset, name)}
+    return [{'glyph': glyph, 'area': glyph_area(glyphset, name), 'string': glyph.characters}
             for name, glyph in sorted(font.input_map.items())]

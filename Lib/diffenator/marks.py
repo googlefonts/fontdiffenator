@@ -96,6 +96,8 @@ class DumpMarks:
         for glyph, anchors in zip(glyph_list, anchors_list):
             anchors = getattr(anchors, anc_type)
             for idx, anchor in enumerate(anchors):
+                if not anchor:  # TODO (M Foley) investigate why fonttools adds Nonetypes
+                    continue
 
                 if idx not in _anchors:
                     _anchors[idx] = []
@@ -115,6 +117,9 @@ class DumpMarks:
          """
         _anchors = {}
         for glyph, anchor in zip(glyph_list, anchors_list):
+            if not anchor:  # TODO (M Foley) investigate why fonttools adds Nonetypes
+                continue
+
             if anchor.Class not in _anchors:
                 _anchors[anchor.Class] = []
             _anchors[anchor.Class].append({
@@ -150,6 +155,7 @@ class DumpMarks:
                             'mark1_y': anchor['y'],
                             'mark2_glyph': anchor2['glyph'],
                             'mark2_x': anchor2['x'],
-                            'mark2_y': anchor2['y']
+                            'mark2_y': anchor2['y'],
+                            'string': anchor['glyph'].characters + anchor2['glyph'].characters
                         })
         return table
