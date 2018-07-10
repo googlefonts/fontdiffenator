@@ -6,9 +6,9 @@ column_mapping = {
 
     ('metrics', 'modified'): ['glyph', 'diff_adv', 'diff_lsb', 'diff_rsb'],
 
-    ('kern', 'modified'): ['left', 'right', 'diff'],
-    ('kern', 'new'): ['left', 'right', 'value'],
-    ('kern', 'missing'): ['left', 'right', 'value'],
+    ('kerns', 'modified'): ['left', 'right', 'diff'],
+    ('kerns', 'new'): ['left', 'right', 'value'],
+    ('kerns', 'missing'): ['left', 'right', 'value'],
 
     ('marks', 'modified'): ['mark1_glyph', 'mark2_glyph', 'diff_x', 'diff_y'],
     ('marks', 'new'): ['mark1_glyph', 'mark2_glyph', 'mark1_x',

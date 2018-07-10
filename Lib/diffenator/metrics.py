@@ -14,7 +14,8 @@ def glyph_metrics(font, glyph):
             'description': u'{} | {}'.format(
                 font.input_map[glyph].name,
                 font.input_map[glyph].features
-            )}
+            ),
+            'features': u', '.join(font.input_map[glyph].features)}
 
 
 def dump_glyph_metrics(font):

@@ -125,7 +125,7 @@ def diff_fonts(font_a_path, font_b_path):
 
     comparisons = ['new', 'missing', 'modified']
     diffs = [
-        ('kern', diff_kerning(font_a, font_b)),
+        ('kerns', diff_kerning(font_a, font_b)),
         ('metrics', diff_metrics(font_a, font_b)),
         ('marks', diff_marks(font_a, font_b, marks_a.mark_table, marks_b.mark_table)),
         ('mkmks', diff_marks(font_a, font_b, marks_a.mkmk_table, marks_b.mkmk_table)),

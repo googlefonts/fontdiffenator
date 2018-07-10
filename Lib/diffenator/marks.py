@@ -161,6 +161,10 @@ class DumpMarks:
                                 anchor['glyph'].name,
                                 anchor2['glyph'].name,
                                 anchor['glyph'].features
+                            ),
+                            'features': u'{}, {}'.format(
+                                ', '.join(anchor['glyph'].features),
+                                ', '.join(anchor2['glyph'].features)
                             )
                         })
         return table
