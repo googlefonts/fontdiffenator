@@ -12,5 +12,9 @@ def glyph_area(glyphset, glyph):
 
 def dump_glyphs(font):
     glyphset = font.getGlyphSet()
-    return [{'glyph': glyph, 'area': glyph_area(glyphset, name), 'string': glyph.characters}
+    return [{
+             'glyph': glyph,
+             'area': glyph_area(glyphset, name),
+             'string': glyph.characters,
+             'description': u'{} | {}'.format(glyph.name, glyph.features)}
             for name, glyph in sorted(font.input_map.items())]
