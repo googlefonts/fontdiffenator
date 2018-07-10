@@ -48,7 +48,10 @@ def main():
         for row in table:
             print row['string'],
     else:
-        print dict_table(table, markdown=markdown)
+        cols = table[0]
+        del cols['description']
+        cols = cols.keys()
+        print dict_table(table, columns=cols, markdown=markdown)
 
 
 if __name__ == '__main__':
