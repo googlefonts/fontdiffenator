@@ -380,10 +380,9 @@ def _modified_glyphs(glyphs_a, glyphs_b, thresh=1000,
         # using abs does not take into consideration if a curve is reversed
         diff = abs(glyphs_b[k]['area']) - abs(glyphs_a[k]['area'])
         if diff > thresh:
-            table.append({
-                "glyph": glyphs_a[k]['glyph'],
-                "diff":  diff
-            })
+            glyph = glyphs_a[k]
+            glyph['diff'] = diff
+            table.append(glyph)
     return table
 
 
