@@ -16,5 +16,6 @@ def dump_glyphs(font):
              'glyph': glyph,
              'area': glyph_area(glyphset, name),
              'string': glyph.characters,
-             'description': u'{} | {}'.format(glyph.name, glyph.features)}
+             'description': u'{} | {}'.format(glyph.name, glyph.features),
+             'features': u', '.join(glyph.features)}
             for name, glyph in sorted(font.input_map.items())]

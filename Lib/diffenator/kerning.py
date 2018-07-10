@@ -117,9 +117,12 @@ def dump_gpos_kerning(font):
         'description': u'{}+{} | {}'.format(
             font.input_map[left].name,
             font.input_map[right].name,
-            font.input_map[left].features)
-        }
-                  for left, right, val in kern_table]
+            font.input_map[left].features),
+        'features': u'{}, {}'.format(
+            ', '.join(font.input_map[left].features),
+            ', '.join(font.input_map[right].features)
+        )}
+        for left, right, val in kern_table]
     return kern_table
 
 
@@ -141,6 +144,10 @@ def dump_table_kerning(font):
                 'description': u'{}+{} | {}'.format(
                     font.input_map[kern[0]].name,
                     font.input_map[kern[1]].name,
-                    font.input_map[kern[0]].features)
+                    font.input_map[kern[0]].features),
+                'features': u'{}, {}'.format(
+                    ', '.join(font.input_map[left].features),
+                    ', '.join(font.input_map[right].features)
+                )
             })
     return kerns

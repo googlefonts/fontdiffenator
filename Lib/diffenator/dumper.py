@@ -49,7 +49,9 @@ def main():
             print row['string'],
     else:
         cols = table[0]
-        del cols['description']
+        for ignore_column in ('description', 'features'):
+            if ignore_column in cols:
+                del cols[ignore_column]
         cols = cols.keys()
         print dict_table(table, columns=cols, markdown=markdown)
 
