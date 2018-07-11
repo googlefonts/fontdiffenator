@@ -110,15 +110,12 @@ def timer(method):
     return timed
 
 
-def diff_fonts(font_a_path, font_b_path):
+def diff_fonts(font_a, font_b):
     """Compare two fonts and return the difference for:
     Kerning, Marks, Attributes, Metrics and Input sequences.
 
     rtype: collection.defaultdict"""
     d = collections.defaultdict(dict)
-
-    font_a = InputFont(font_a_path)
-    font_b = InputFont(font_b_path)
 
     marks_a = DumpMarks(font_a)
     marks_b = DumpMarks(font_b)
