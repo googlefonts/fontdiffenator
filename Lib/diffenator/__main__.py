@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from diff import diff_fonts
+from font import InputFont
 from utils import diff_reporter
 import argparse
 
@@ -27,9 +28,12 @@ def main():
                         help='Report diffs which are the same')
     args = parser.parse_args()
 
+    font_a = InputFont(args.font_a)
+    font_b = InputFont(args.font_b)
+
     comparison = diff_fonts(
-        args.font_a,
-        args.font_b,
+        font_a,
+        font_b,
     )
 
     output_lines = args.output_lines if args.output_lines else 1000
