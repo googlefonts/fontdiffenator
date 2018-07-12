@@ -395,10 +395,10 @@ def diff_marks(font_a, font_b, marks_a, marks_b, thresh=2, scale_upms=True):
     charset_a = set([font_a.input_map[g].kkey for g in font_a.input_map])
     charset_b = set([font_b.input_map[g].kkey for g in font_b.input_map])
 
-    marks_a_h = {i['mark1_glyph'].kkey+i['mark2_glyph'].kkey: i for i in marks_a
-                 if i['mark1_glyph'].kkey in charset_b and i['mark2_glyph'].kkey in charset_b}
-    marks_b_h = {i['mark1_glyph'].kkey+i['mark2_glyph'].kkey: i for i in marks_b
-                 if i['mark1_glyph'].kkey in charset_a and i['mark2_glyph'].kkey in charset_a}
+    marks_a_h = {i['base_glyph'].kkey+i['mark_glyph'].kkey: i for i in marks_a
+                 if i['base_glyph'].kkey in charset_b and i['mark_glyph'].kkey in charset_b}
+    marks_b_h = {i['base_glyph'].kkey+i['mark_glyph'].kkey: i for i in marks_b
+                 if i['base_glyph'].kkey in charset_a and i['mark_glyph'].kkey in charset_a}
 
     missing = _subtract_items(marks_a_h, marks_b_h)
     new = _subtract_items(marks_b_h, marks_a_h)
@@ -407,8 +407,8 @@ def diff_marks(font_a, font_b, marks_a, marks_b, thresh=2, scale_upms=True):
 
     Marks = namedtuple('Marks', ['new', 'missing', 'modified'])
     return Marks(
-        sorted(new, key=lambda k: k['mark1_glyph'].name),
-        sorted(missing, key=lambda k: k['mark1_glyph'].name),
+        sorted(new, key=lambda k: k['base_glyph'].name),
+        sorted(missing, key=lambda k: k['base_glyph'].name),
         sorted(modified, key=lambda k: abs(k['diff_x']) + abs(k['diff_y']), reverse=True)
     )
 
@@ -416,7 +416,7 @@ def diff_marks(font_a, font_b, marks_a, marks_b, thresh=2, scale_upms=True):
 def _modified_marks(marks_a, marks_b, thresh=8,
                     upm_a=None, upm_b=None, scale_upms=False):
 
-    marks = ['mark1_x', 'mark1_y', 'mark2_x', 'mark2_y']
+    marks = ['base_x', 'base_y', 'mark_x', 'mark_y']
 
     shared = set(marks_a.keys()) & set(marks_b.keys())
 
@@ -427,10 +427,10 @@ def _modified_marks(marks_a, marks_b, thresh=8,
                 marks_a[k][mark] = (marks_a[k][mark] / float(upm_a)) * upm_a
                 marks_b[k][mark] = (marks_b[k][mark] / float(upm_b)) * upm_a
 
-        offset_a_x = marks_a[k]['mark1_x'] - marks_a[k]['mark2_x']
-        offset_a_y = marks_a[k]['mark1_y'] - marks_a[k]['mark2_y']
-        offset_b_x = marks_b[k]['mark1_x'] - marks_b[k]['mark2_x']
-        offset_b_y = marks_b[k]['mark1_y'] - marks_b[k]['mark2_y']
+        offset_a_x = marks_a[k]['base_x'] - marks_a[k]['mark_x']
+        offset_a_y = marks_a[k]['base_y'] - marks_a[k]['mark_y']
+        offset_b_x = marks_b[k]['base_x'] - marks_b[k]['mark_x']
+        offset_b_y = marks_b[k]['base_y'] - marks_b[k]['mark_y']
 
         diff_x = offset_b_x - offset_a_x
         diff_y = offset_b_y - offset_a_y
@@ -439,7 +439,7 @@ def _modified_marks(marks_a, marks_b, thresh=8,
             mark = marks_a[k]
             mark['diff_x'] = diff_x
             mark['diff_y'] = diff_y
-            for pos in ['mark1_x', 'mark1_y', 'mark2_x', 'mark2_y']:
+            for pos in ['base_x', 'base_y', 'mark_x', 'mark_y']:
                 mark.pop(pos)
             table.append(mark)
     return table
