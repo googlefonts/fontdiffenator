@@ -17,8 +17,10 @@ class DumpMarks:
         self._mark2 = []
         self._get_groups()
 
-        self._mark_table = self._gen_table(self._base, self._marks)
-        self._mkmk_table = self._gen_table(self._mark1, self._mark2)
+        self._mark_table = self._gen_table(self._base, self._marks, anc2_is_combining=True)
+        self._mkmk_table = self._gen_table(self._mark1, self._mark2,
+                                           anc1_is_combining=True,
+                                           anc2_is_combining=True)
 
     @property
     def base_groups(self):
@@ -130,7 +132,8 @@ class DumpMarks:
             })
         return _anchors
 
-    def _gen_table(self, anchors1, anchors2):
+    def _gen_table(self, anchors1, anchors2,
+                   anc1_is_combining=False, anc2_is_combining=False):
         """Return a flattened table consisting of mark1_glyphs with their
         attached mark2_glyphs.
 
@@ -147,8 +150,11 @@ class DumpMarks:
             for m_group in anchors1[l_idx]:
 
                 for anchor in anchors1[l_idx][m_group]:
+                    if anc1_is_combining and not anchor['glyph'].combining:
+                        continue
                     for anchor2 in anchors2[l_idx][m_group]:
-
+                        if anc2_is_combining and not anchor2['glyph'].combining:
+                            continue
                         table.append({
                             'mark1_glyph': anchor['glyph'],
                             'mark1_x': anchor['x'],

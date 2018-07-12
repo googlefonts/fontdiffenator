@@ -4,7 +4,7 @@ contains a glyph object which contains the input, features for each glyph.
 from fontTools.misc.py23 import unichr
 from fontTools.ttLib import TTFont
 from diffenator.hbinput import HbInputGenerator
-
+import unicodedata as uni
 
 class InputFont(TTFont):
     """Wrapper for TTFont object which contains an input map to generate
@@ -105,6 +105,7 @@ class Glyph:
         self.name = name
         self.features = features
         self.characters = characters
+        self.combining = True if characters and uni.combining(characters[0]) else False
         self.kkey = self.characters + ''.join(features)
 
     def __repr__(self):
