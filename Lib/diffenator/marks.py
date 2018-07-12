@@ -139,10 +139,10 @@ class DumpMarks:
 
         rtype:
         [
-            {'mark1_glyph': 'a', 'mark1_x': 300, 'mark1_y': 450,
-             'mark2_glyph': 'acutecomb', 'mark2_x': 0, 'mark2_y': 550},
-            {'mark1_glyph': 'a', 'mark1_x': 300, 'mark1_y': 450,
-             'mark2_glyph': 'gravecomb', 'mark2_x': 0, 'mark2_y': 550},
+            {'mark1_glyph': 'a', 'base_x': 300, 'base_y': 450,
+             'mark2_glyph': 'acutecomb', 'mark_x': 0, 'mark_y': 550},
+            {'mark1_glyph': 'a', 'base_x': 300, 'base_y': 450,
+             'mark2_glyph': 'gravecomb', 'mark_x': 0, 'mark_y': 550},
         ]
         """
         table = []
@@ -156,12 +156,12 @@ class DumpMarks:
                         if anc2_is_combining and not anchor2['glyph'].combining:
                             continue
                         table.append({
-                            'mark1_glyph': anchor['glyph'],
-                            'mark1_x': anchor['x'],
-                            'mark1_y': anchor['y'],
-                            'mark2_glyph': anchor2['glyph'],
-                            'mark2_x': anchor2['x'],
-                            'mark2_y': anchor2['y'],
+                            'base_glyph': anchor['glyph'],
+                            'base_x': anchor['x'],
+                            'base_y': anchor['y'],
+                            'mark_glyph': anchor2['glyph'],
+                            'mark_x': anchor2['x'],
+                            'mark_y': anchor2['y'],
                             'string': anchor['glyph'].characters + anchor2['glyph'].characters,
                             'description': u'{} + {} | {}'.format(
                                 anchor['glyph'].name,

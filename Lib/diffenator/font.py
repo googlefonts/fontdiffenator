@@ -4,7 +4,15 @@ contains a glyph object which contains the input, features for each glyph.
 from fontTools.misc.py23 import unichr
 from fontTools.ttLib import TTFont
 from diffenator.hbinput import HbInputGenerator
-import unicodedata as uni
+import sys
+try:
+    # try and import unicodedata2 backport for py2.7.
+    import unicodedata2 as uni
+except ImportError:
+    # on py2.7, this module only goes up to unicode 5.2.0 so it won't support
+    # recently added glyphs.
+    import unicodedata as uni
+
 
 class InputFont(TTFont):
     """Wrapper for TTFont object which contains an input map to generate
