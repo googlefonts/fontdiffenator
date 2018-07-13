@@ -384,7 +384,7 @@ def _modified_glyphs(glyphs_a, glyphs_b, thresh=1000,
 
 
 @timer
-def diff_marks(font_a, font_b, marks_a, marks_b, thresh=2, scale_upms=True):
+def diff_marks(font_a, font_b, marks_a, marks_b, thresh=4, scale_upms=True):
     """Compare mark positioning differences.
 
     Marks are flattened
@@ -413,7 +413,7 @@ def diff_marks(font_a, font_b, marks_a, marks_b, thresh=2, scale_upms=True):
     )
 
 
-def _modified_marks(marks_a, marks_b, thresh=8,
+def _modified_marks(marks_a, marks_b, thresh=4,
                     upm_a=None, upm_b=None, scale_upms=False):
 
     marks = ['base_x', 'base_y', 'mark_x', 'mark_y']
@@ -435,7 +435,7 @@ def _modified_marks(marks_a, marks_b, thresh=8,
         diff_x = offset_b_x - offset_a_x
         diff_y = offset_b_y - offset_a_y
 
-        if abs(diff_x) + abs(diff_y) > thresh:
+        if abs(diff_x) > thresh or abs(diff_y) > thresh:
             mark = marks_a[k]
             mark['diff_x'] = diff_x
             mark['diff_y'] = diff_y
