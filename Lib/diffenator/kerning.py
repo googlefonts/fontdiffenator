@@ -140,14 +140,14 @@ def dump_table_kerning(font):
                 'right': font.input_map[kern[1]],
                 'value': table.kernTable[kern],
                 'string': font.input_map[kern[0]].characters + \
-                          font.intput_map[kern[1]].characters,
+                          font.input_map[kern[1]].characters,
                 'description': u'{}+{} | {}'.format(
                     font.input_map[kern[0]].name,
                     font.input_map[kern[1]].name,
                     font.input_map[kern[0]].features),
                 'features': u'{}, {}'.format(
-                    ', '.join(font.input_map[left].features),
-                    ', '.join(font.input_map[right].features)
+                    ', '.join(font.input_map[kern[0]].features),
+                    ', '.join(font.input_map[kern[1]].features)
                 )
             })
     return kerns
