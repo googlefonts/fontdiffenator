@@ -82,7 +82,14 @@ def _kern_class(class_definition, coverage_glyphs):
     return classes
 
 
-def dump_gpos_kerning(font):
+def dump_kerning(font):
+    kerning = _dump_gpos_kerning(font)
+    if not kerning:
+        kerning = _dump_table_kerning(font)
+    return kerning
+
+
+def _dump_gpos_kerning(font):
 
     if 'GPOS' not in font:
         logger.warning("Font doesn't have GPOS table. No kerns found")
@@ -126,7 +133,7 @@ def dump_gpos_kerning(font):
     return kern_table
 
 
-def dump_table_kerning(font):
+def _dump_table_kerning(font):
     """Some fonts still contain kern tables. Most modern fonts include
     kerning in the GPOS table"""
     if not 'kern' in font:
