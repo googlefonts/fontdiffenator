@@ -1,6 +1,6 @@
 import unittest
 from mockfont import mock_font
-from diffenator.kerning import dump_gpos_kerning
+from diffenator.kerning import dump_kerning
 from diffenator.marks import DumpMarks
 
 class TestGposKerningDump(unittest.TestCase):
@@ -14,7 +14,7 @@ class TestGposKerningDump(unittest.TestCase):
                 pos V A -140;} kern;
             """
         )
-        kerns = dump_gpos_kerning(font)
+        kerns = dump_kerning(font)
         self.assertEqual(len(kerns), 2)
 
     def test_class_on_class_kerns(self):
@@ -33,7 +33,7 @@ class TestGposKerningDump(unittest.TestCase):
                 pos @V_l @A_r -140;} kern;
             """
         )
-        kerns = dump_gpos_kerning(font)
+        kerns = dump_kerning(font)
         self.assertEqual(len(kerns), 4)
 
     def test_class_on_class_kerns2(self):

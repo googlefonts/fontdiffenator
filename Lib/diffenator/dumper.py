@@ -1,7 +1,7 @@
 """Dump a font's table"""
 import argparse
 from font import InputFont
-from kerning import dump_gpos_kerning
+from kerning import dump_kerning
 from marks import DumpMarks
 from attribs import dump_attribs
 from names import dump_nametable
@@ -11,7 +11,7 @@ from utils import dict_table
 
 
 DUMP_FUNC = {
-    'kerns': dump_gpos_kerning,
+    'kerns': dump_kerning,
     'attribs': dump_attribs,
     'names': dump_nametable,
     'metrics': dump_glyph_metrics,

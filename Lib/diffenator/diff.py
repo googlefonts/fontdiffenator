@@ -80,7 +80,7 @@ new =
 import collections
 from font import InputFont
 from metrics import dump_glyph_metrics
-from kerning import dump_gpos_kerning, dump_table_kerning
+from kerning import dump_kerning
 from attribs import dump_attribs
 from names import dump_nametable
 from glyphs import dump_glyphs
@@ -204,13 +204,8 @@ def diff_kerning(font_a, font_b, thresh=2, scale_upms=True):
 
     Some fonts use a kern table instead of gpos kerns, test these
     if no gpos kerns exist. This problem exists in Open Sans v1."""
-    kern_a = dump_gpos_kerning(font_a)
-    kern_b = dump_gpos_kerning(font_b)
-
-    if not kern_a:
-        kern_a = dump_table_kerning(font_a)
-    if not kern_b:
-        kern_b = dump_table_kerning(font_b)
+    kern_a = dump_kerning(font_a)
+    kern_b = dump_kerning(font_b)
 
     upm_a = font_a['head'].unitsPerEm
     upm_b = font_b['head'].unitsPerEm
