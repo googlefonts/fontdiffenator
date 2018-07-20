@@ -39,10 +39,11 @@ def main():
     output_lines = args.output_lines if args.output_lines else 1000
     markdown = True if args.markdown else False
     is_verbose = True if args.verbose else False
-    print diff_reporter(args.font_a, args.font_b, comparison,
+    report = diff_reporter(args.font_a, args.font_b, comparison,
                         markdown=markdown,
                         output_lines=output_lines,
                         verbose=is_verbose)
+    print report.encode('utf-8')
 
 
 if __name__ == '__main__':
