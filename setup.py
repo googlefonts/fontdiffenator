@@ -3,7 +3,7 @@ from setuptools import setup, find_packages, Command
 from distutils import log
 
 setup(
-    name='diffenator',
+    name='fontdiffenator',
     version='0.1.0',
     author="Google Fonts Project Authors",
     description="Font regression tester for Google Fonts",
