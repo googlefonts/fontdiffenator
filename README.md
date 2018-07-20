@@ -63,8 +63,9 @@ $ diffenator ./path/to/font_a.ttf ./path/to/font_b.ttf
 
 ```
 >>> from diffenator import diff_fonts
->>> font_a_path = './path/to/font_a.ttf'
->>> font_b_path = './path/to/font_b.ttf'
+>>> from diffenator.font import InputFont
+>>> font_a_path = InputFont('./path/to/font_a.ttf')
+>>> font_b_path = InputFont('./path/to/font_b.ttf')
 >>> diff_fonts(font_a_path, font_b_path)
 ...
 ```
