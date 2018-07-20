@@ -18,6 +18,6 @@ setup(
         ],
     },
     install_requires=[
-        "fonttools>=3.4.0",
+        "fonttools>=3.28.0",
     ],
 )
