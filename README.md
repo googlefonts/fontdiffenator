@@ -47,7 +47,15 @@ The developers of fontTools are working on [otlLib](https://github.com/fonttools
 
 
 ## Installation
+
 ```
+pip install fontdiffenator
+```
+
+### Dev install 
+```
+$ git clone https://github.com/googlefonts/fontdiffenator
+$ cd fontdiffenator
 $ virtualenv venv
 $ source venv/bin/activate
 $ pip install . # -e . for dev installation
