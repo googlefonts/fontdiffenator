@@ -1,6 +1,16 @@
 import os
 
 
+comp_order = [
+    'attribs',
+    'names',
+    'glyphs',
+    'metrics',
+    'marks',
+    'mkmk',
+    'kerns'
+]
+
 column_mapping = {
     ('attribs', 'modified'): ['table', 'attrib', 'value_a', 'value_b'],
 
@@ -79,8 +89,11 @@ def _assemble_cli_row(t_format, row, columns, clip_col=False):
 
 
 def diff_reporter(font_a, font_b, comp_data,
+                  comp_order=comp_order,
                   markdown=False, output_lines=10, verbose=False):
-    """Generate a cli report"""
+    """Generate a cli report.
+    comp_order: A user defined list denoting the order of comparison
+                categories."""
     report = []
     h1 = '# ' if markdown else ''
     h2 = '## ' if markdown else ''
@@ -91,7 +104,9 @@ def diff_reporter(font_a, font_b, comp_data,
     )
     report.append(title)
     report.append(subtitle)
-    for category in comp_data:
+
+    comp_order = comp_order if comp_order else comp_data.keys()
+    for category in comp_order:
         for sub_category in comp_data[category]:
             if comp_data[category][sub_category]:
                 report.append(
