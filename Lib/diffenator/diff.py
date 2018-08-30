@@ -131,6 +131,9 @@ def diff_fonts(font_a, font_b):
         ('names', diff_nametable(font_a, font_b)),
     ]
 
+    if font_a.is_variable or font_b.is_variable:
+        diffs.pop()
+
     for category, diff in diffs:
         for comparison in comparisons:
             if hasattr(diff, comparison):
