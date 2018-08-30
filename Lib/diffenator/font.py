@@ -20,6 +20,8 @@ class InputFont(TTFont):
     def __init__(self, file=None, lazy=False):
         super(InputFont, self).__init__(file, lazy=False)
         self._input_map = self._gen_inputs() if file else []
+        self.is_variable = False
+        self.path = file
 
     @property
     def input_map(self):

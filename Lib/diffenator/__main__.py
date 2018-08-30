@@ -13,7 +13,11 @@
 # limitations under the License.
 from diff import diff_fonts
 from font import InputFont
-from utils import diff_reporter
+from utils import (
+    diff_reporter,
+    vf_instance,
+    vf_instance_from_static
+)
 import argparse
 
 
@@ -26,10 +30,22 @@ def main():
                         help="Output report as markdown.")
     parser.add_argument('-v', '--verbose', action='store_true',
                         help='Report diffs which are the same')
+    parser.add_argument('-i', '--vf-instance', default='Regular',
+                        help='Variable font instance to diff')
     args = parser.parse_args()
 
     font_a = InputFont(args.font_a)
     font_b = InputFont(args.font_b)
+
+    if 'fvar' in font_a and 'fvar' not in font_b:
+        font_a = vf_instance_from_static(font_a, font_b)
+
+    elif 'fvar' not in font_a and 'fvar' in font_b:
+        font_b = vf_instance_from_static(font_b, font_a)
+
+    elif 'fvar' in font_a and 'fvar' in font_b:
+        font_a = vf_instance(font_a, args.vf_instance)
+        font_b = vf_instance(font_b, args.vf_instance)
 
     comparison = diff_fonts(
         font_a,

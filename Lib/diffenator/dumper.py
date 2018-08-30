@@ -7,7 +7,7 @@ from attribs import dump_attribs
 from names import dump_nametable
 from metrics import dump_glyph_metrics
 from glyphs import dump_glyphs
-from utils import dict_table
+from utils import dict_table, vf_instance
 
 
 DUMP_FUNC = {
@@ -26,9 +26,15 @@ def main():
     parser.add_argument('-s', '--strings-only', action='store_true')
     parser.add_argument('-ol', '--output-lines', type=int)
     parser.add_argument('-md', '--markdown', action='store_true')
+    parser.add_argument('-i', '--vf-instance', default='Regular',
+                        help='Variable font instance to diff')
 
     args = parser.parse_args()
     font = InputFont(args.font)
+
+    if 'fvar' in font:
+        font = vf_instance(font, args.vf_instance)
+
     markdown = True if args.markdown else False
 
     if args.dump in ('marks', 'mkmks'):

@@ -1,5 +1,5 @@
+from fontTools.varLib.mutator import instantiateVariableFont
 import os
-
 
 comp_order = [
     'attribs',
@@ -126,3 +126,78 @@ def diff_reporter(font_a, font_b, comp_data,
                 report.append('\n\n**%s %s**\n' % (category, sub_category))
                 report.append('No differences')
     return ''.join(report)
+
+
+STYLE_TERMS = [
+    'Hairline',
+    'ExtraLight',
+    'UltraLight',
+    'Light',
+    'Regular',
+    'Book',
+    'Medium',
+    'SemiBold',
+    'Bold',
+    'ExtraBold',
+    'Black',
+    'Italic',
+    'Oblique',
+    'SemiCondensed',
+    'Condensed',
+    'Expanded',
+    'SemiExpanded',
+    'Narrow',
+    'Compressed',
+    'Semi',
+    'Demi',
+    'Extra',
+    'Ultra',
+    'Demi',
+]
+
+
+def stylename_from_name(name):
+    """Extract the stylename from a string"""
+    string = []
+    for i in name.split():
+        if i.lower() in [s.lower() for s in STYLE_TERMS]:
+            string.append(i)
+    stylename = ' '.join(string)
+    return stylename
+
+
+def _axis_loc_from_name(vf_font, style_name):
+    """Get VF axis location from a style name"""
+    vf_instance_idxs = [n.subfamilyNameID for n in vf_font['fvar'].instances]
+    vf_instance_names = [vf_font['name'].getName(n, 3, 1, 1033).toUnicode()
+                         for n in vf_instance_idxs]
+    vf_instance_coords = {n: i.coordinates for n, i in
+                          zip(vf_instance_names, vf_font['fvar'].instances)}
+    if not vf_instance_coords:
+        raise Exception('{} has no fvar instances'.format(vf_font.path))
+
+    if style_name not in vf_instance_names:
+        raise Exception(('Instance "{}"" not found in '
+                         'fvar instances. Available [{}]'.format(
+            style_name, ', '.join(vf_instance_names))
+        ))
+    return vf_instance_coords[style_name]
+
+
+def vf_instance_from_static(vf_font, static_font):
+    """Instantiate a VF using a static font's nametable.
+    Returned instance is in-memory"""
+    style_name = stylename_from_name(
+            static_font['name'].getName(4, 3, 1, 1033).toUnicode()
+    )
+    print 'Getting instance {}'.format(style_name)
+    return vf_instance(vf_font, style_name)
+
+
+def vf_instance(font, instance_name):
+    """Instantiate a VF using an instance name.
+    Returned instance is in-memory."""
+    loc = _axis_loc_from_name(font, instance_name)
+    instance = instantiateVariableFont(font, loc, inplace=True)
+    instance.is_variable = True
+    return instance
