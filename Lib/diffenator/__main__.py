@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from diff import diff_fonts
+from diffenator import __version__
 from font import InputFont
 from utils import (
     diff_reporter,
@@ -23,6 +24,7 @@ import argparse
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument('--version', action='version', version=__version__)
     parser.add_argument('font_a')
     parser.add_argument('font_b')
     parser.add_argument('-ol', '--output-lines', type=int, default=50)
