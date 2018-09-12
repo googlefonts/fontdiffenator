@@ -1,5 +1,9 @@
 from fontTools.varLib.mutator import instantiateVariableFont
 import os
+import sys
+if sys.version_info.major == 3:
+    unicode = str
+
 
 comp_order = [
     'attribs',
@@ -190,7 +194,7 @@ def vf_instance_from_static(vf_font, static_font):
     style_name = stylename_from_name(
             static_font['name'].getName(4, 3, 1, 1033).toUnicode()
     )
-    print 'Getting instance {}'.format(style_name)
+    print('Getting instance {}'.format(style_name))
     return vf_instance(vf_font, style_name)
 
 

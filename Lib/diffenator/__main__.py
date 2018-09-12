@@ -11,10 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from diff import diff_fonts
+from diffenator.diff import diff_fonts
 from diffenator import __version__
-from font import InputFont
-from utils import (
+from diffenator.font import InputFont
+from diffenator.utils import (
     diff_reporter,
     vf_instance,
     vf_instance_from_static
@@ -61,7 +61,7 @@ def main():
                         markdown=markdown,
                         output_lines=output_lines,
                         verbose=is_verbose)
-    print report.encode('utf-8')
+    print(report)
 
 
 if __name__ == '__main__':

@@ -12,6 +12,8 @@ except ImportError:
     # on py2.7, this module only goes up to unicode 5.2.0 so it won't support
     # recently added glyphs.
     import unicodedata as uni
+if sys.version_info.major == 3:
+    unicode = str
 
 
 class InputFont(TTFont):
