@@ -1,6 +1,6 @@
 # Diffenator
 
-Compare two fonts against each other.
+Python 3 library to compare two fonts against each other.
 
 ## Features
 
