@@ -1,13 +1,14 @@
 """Dump a font's table"""
+from __future__ import print_function
 import argparse
-from font import InputFont
-from kerning import dump_kerning
-from marks import DumpMarks
-from attribs import dump_attribs
-from names import dump_nametable
-from metrics import dump_glyph_metrics
-from glyphs import dump_glyphs
-from utils import dict_table, vf_instance
+from diffenator.font import InputFont
+from diffenator.kerning import dump_kerning
+from diffenator.marks import DumpMarks
+from diffenator.attribs import dump_attribs
+from diffenator.names import dump_nametable
+from diffenator.metrics import dump_glyph_metrics
+from diffenator.glyphs import dump_glyphs
+from diffenator.utils import dict_table, vf_instance
 
 
 DUMP_FUNC = {
@@ -22,7 +23,7 @@ DUMP_FUNC = {
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('font')
-    parser.add_argument('dump', choices=DUMP_FUNC.keys() + ['marks', 'mkmks'])
+    parser.add_argument('dump', choices=list(DUMP_FUNC.keys()) + ['marks', 'mkmks'])
     parser.add_argument('-s', '--strings-only', action='store_true')
     parser.add_argument('-ol', '--output-lines', type=int)
     parser.add_argument('-md', '--markdown', action='store_true')
@@ -52,14 +53,14 @@ def main():
         'kerns', 'marks', 'mkmks', 'glyphs', 'metrics'
     ):
         for row in table:
-            print row['string'],
+            print(row['string']),
     else:
         cols = table[0]
         for ignore_column in ('description', 'features'):
             if ignore_column in cols:
                 del cols[ignore_column]
         cols = cols.keys()
-        print dict_table(table, columns=cols, markdown=markdown)
+        print(dict_table(table, columns=cols, markdown=markdown))
 
 
 if __name__ == '__main__':

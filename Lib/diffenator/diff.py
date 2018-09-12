@@ -76,15 +76,15 @@ font_b =
 new =
 []
 """
-
+from __future__ import print_function
 import collections
-from font import InputFont
-from metrics import dump_glyph_metrics
-from kerning import dump_kerning
-from attribs import dump_attribs
-from names import dump_nametable
-from glyphs import dump_glyphs
-from marks import DumpMarks
+from diffenator.font import InputFont
+from diffenator.metrics import dump_glyph_metrics
+from diffenator.kerning import dump_kerning
+from diffenator.attribs import dump_attribs
+from diffenator.names import dump_nametable
+from diffenator.glyphs import dump_glyphs
+from diffenator.marks import DumpMarks
 from collections import namedtuple
 import time
 
@@ -104,8 +104,8 @@ def timer(method):
             name = kw.get('log_name', method.__name__.upper())
             kw['log_time'][name] = int((te - ts) * 1000)
         else:
-            print '%r  %2.2f ms' % \
-                  (method.__name__, (te - ts) * 1000)
+            print('%r  %2.2f ms' % \
+                  (method.__name__, (te - ts) * 1000))
         return result
     return timed
 
