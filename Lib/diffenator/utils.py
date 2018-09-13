@@ -134,6 +134,7 @@ def diff_reporter(font_a, font_b, comp_data,
 
 STYLE_TERMS = [
     'Hairline',
+    'Thin',
     'ExtraLight',
     'UltraLight',
     'Light',
@@ -147,6 +148,7 @@ STYLE_TERMS = [
     'Italic',
     'Oblique',
     'SemiCondensed',
+    'ExtraCondensed',
     'Condensed',
     'Expanded',
     'SemiExpanded',
