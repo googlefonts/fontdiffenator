@@ -3,6 +3,8 @@
 Caveat, the rsb implementation is only accurate when curve points are
 on the extrema"""
 
+__all__ = ['dump_glyph_metrics']
+
 
 def glyph_metrics(font, glyph):
     lsb = _glyph_lsb(font, glyph)
@@ -19,6 +21,24 @@ def glyph_metrics(font, glyph):
 
 
 def dump_glyph_metrics(font):
+    """Dump the metrics for each glyph in a font
+
+    Parameters
+    ----------
+    font: InputFont
+
+    Returns
+    -------
+    dump_table: list
+    Each row in the table is represented as a dict.
+        [
+            {'glyph': A, 'lsb': 50, 'rsb': 50, 'adv': 200,
+             'string': 'A', 'description': "A | ()"},
+            {'glyph': B, 'lsb': 80, 'rsb': 50, 'adv': 230,
+             'string': 'B', 'description': "B | ()"},
+            ...
+        ]
+    """
     glyphs = font.getGlyphSet().keys()
     return [glyph_metrics(font, g) for g in glyphs]
 

@@ -1,10 +1,22 @@
-"""Dump font's nametable"""
-from fontTools.ttLib import TTFont
+def dump_nametable(font):
+    """Dump a font's nametable
 
+    Parameters
+    ----------
+    font: InputFont
 
-def dump_nametable(ttfont):
+    Returns
+    -------
+    dump_table: list
+        Each row in the table is represented as a dict.
+        [
+            {'id': (1, 3, 1, 1033), 'string': 'Noto Sans'},
+            {'id': (2, 3, 1, 1033), 'string': 'Regular'},
+            ...
+        ]
+    """
     table = []
-    name_table = ttfont['name']
+    name_table = font['name']
 
     for name in name_table.names:
         table.append({

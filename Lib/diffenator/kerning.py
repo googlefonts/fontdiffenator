@@ -1,14 +1,15 @@
-"""Dump a font's GPOS kerning.
+"""Dump a font's kerning.
 
 TODO (Marc Foley) Flattening produced too much output. Perhaps it's better
-to keep the classes and map each class to a single glyph.
+to keep the classes and map each class to a single glyph?
 
 Perhaps it would be better to combine our efforts and help improve
 https://github.com/adobe-type-tools/kern-dump which has similar
-functionality"""
+functionality?"""
 import logging
-
 logger = logging.getLogger(__name__)
+
+__all__ = ['dump_kerning']
 
 
 def _kerning_lookup_indexes(font):
@@ -83,6 +84,26 @@ def _kern_class(class_definition, coverage_glyphs):
 
 
 def dump_kerning(font):
+    """Dump a font's kerning.
+
+    If no GPOS kerns exist, try and dump the kern table instead
+
+    Parameters
+    ----------
+    font: InputFont
+
+    Returns
+    -------
+    dump_table: list
+        Each row in the table is represented as a dict.
+        [
+            {'left': A, 'right': V, 'value': -50,
+             'string': 'AV', 'description': "AV | ()", 'features': []},
+            {'left': V, 'right': A, 'value': -50,
+             'string': 'VA', 'description': "VA | ()", 'features': []},
+            ...
+        ]
+    """
     kerning = _dump_gpos_kerning(font)
     if not kerning:
         kerning = _dump_table_kerning(font)
@@ -90,7 +111,6 @@ def dump_kerning(font):
 
 
 def _dump_gpos_kerning(font):
-
     if 'GPOS' not in font:
         logger.warning("Font doesn't have GPOS table. No kerns found")
         return []
