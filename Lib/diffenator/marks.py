@@ -1,11 +1,10 @@
-"""Dump a font's mark and mkmk feature"""
 import logging
 
 logger = logging.getLogger(__name__)
 
 
 class DumpMarks:
-    """Dump a font's mark positions"""
+    """Dump a font's mark and mkmks positions"""
     def __init__(self, font):
         self._font = font
         self._lookups = self._get_lookups() if 'GPOS' in font.keys() else []
@@ -137,7 +136,9 @@ class DumpMarks:
         """Return a flattened table consisting of mark1_glyphs with their
         attached mark2_glyphs.
 
-        rtype:
+        Returns
+        -------
+        dump_table: list
         [
             {'mark1_glyph': 'a', 'base_x': 300, 'base_y': 450,
              'mark2_glyph': 'acutecomb', 'mark_x': 0, 'mark_y': 550},

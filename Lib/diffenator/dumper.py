@@ -1,5 +1,26 @@
-"""Dump a font's table"""
+"""
+Dumper
+~~~~~~
+
+Dump a font category.
+
+Categories which can be dumped are attribs, metrics, kerns, glyphs, names
+marks and mkmks.
+
+Examples
+--------
+
+Dump kerning:
+dumper /path/to/font.ttf kerns
+
+Dump just kerning pair strings:
+dumper /path/to/font.ttf kerns -s
+
+Output report as markdown:
+dumper /path/to/font.ttf -md
+"""
 from __future__ import print_function
+from argparse import RawTextHelpFormatter
 import argparse
 from diffenator.font import InputFont
 from diffenator.kerning import dump_kerning
@@ -8,7 +29,7 @@ from diffenator.attribs import dump_attribs
 from diffenator.names import dump_nametable
 from diffenator.metrics import dump_glyph_metrics
 from diffenator.glyphs import dump_glyphs
-from diffenator.utils import dict_table, vf_instance
+from diffenator.reporters import dump_report, CLIFormatter, MDFormatter
 
 
 DUMP_FUNC = {
@@ -21,11 +42,12 @@ DUMP_FUNC = {
 
 
 def main():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description=__doc__,
+                                     formatter_class=RawTextHelpFormatter)
     parser.add_argument('font')
     parser.add_argument('dump', choices=list(DUMP_FUNC.keys()) + ['marks', 'mkmks'])
     parser.add_argument('-s', '--strings-only', action='store_true')
-    parser.add_argument('-ol', '--output-lines', type=int)
+    parser.add_argument('-ol', '--output-lines', type=int, default=50)
     parser.add_argument('-md', '--markdown', action='store_true')
     parser.add_argument('-i', '--vf-instance', default='Regular',
                         help='Variable font instance to diff')
@@ -36,8 +58,6 @@ def main():
     if 'fvar' in font:
         font = vf_instance(font, args.vf_instance)
 
-    markdown = True if args.markdown else False
-
     if args.dump in ('marks', 'mkmks'):
         dump_marks = DumpMarks(font)
         if args.dump == 'marks':
@@ -47,20 +67,11 @@ def main():
     else:
         table = DUMP_FUNC[args.dump](font)
 
-    table = table[:args.output_lines] if args.output_lines else table
+    table = table[:args.output_lines]
 
-    if args.strings_only and args.dump in (
-        'kerns', 'marks', 'mkmks', 'glyphs', 'metrics'
-    ):
-        for row in table:
-            print(row['string']),
-    else:
-        cols = table[0]
-        for ignore_column in ('description', 'features'):
-            if ignore_column in cols:
-                del cols[ignore_column]
-        cols = cols.keys()
-        print(dict_table(table, columns=cols, markdown=markdown))
+    formatter = CLIFormatter if not args.markdown else MDFormatter
+    report = dump_report(table, args.dump, Formatter=formatter)
+    print(report)
 
 
 if __name__ == '__main__':

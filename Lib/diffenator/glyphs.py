@@ -1,6 +1,7 @@
-"""Dump a fontfs glyf table"""
-from diffenator.font import InputFont
+"""Dump a font's glyf table"""
 from fontTools.pens.areaPen import AreaPen
+
+__all__ = ['dump_glyphs']
 
 
 def glyph_area(glyphset, glyph):
@@ -11,6 +12,24 @@ def glyph_area(glyphset, glyph):
 
 
 def dump_glyphs(font):
+    """Dump info for each glyph in a font
+
+    Parameters
+    ----------
+    font: InputFont
+
+    Returns
+    -------
+    dump_table: list
+    Each row in the table is represented as a dict.
+        [
+            {'glyph': A, 'area': 1000, string': 'A',
+             'description': "A | ()", 'features': []},
+            {'glyph': B, 'area': 1100, string': 'B',
+             'description': "B | ()", 'features': []},
+            ...
+        ]
+    """
     glyphset = font.getGlyphSet()
     return [{
              'glyph': glyph,

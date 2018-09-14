@@ -9,6 +9,9 @@ from diffenator.diff import (
     diff_marks,
     diff_kerning,
 )
+import sys
+if sys.version_info.major == 3:
+    unicode = str
 
 
 class TestDiffAttribs(unittest.TestCase):
@@ -28,7 +31,7 @@ class TestDiffAttribs(unittest.TestCase):
         self.diff = diff_attribs(self.font_a, self.font_b)
 
     def test_diff_attribs(self):
-        modified = self.diff.modified
+        modified = self.diff['modified']
         self.assertNotEqual(modified, [])
 
     def test_upm_scale_attribs(self):
@@ -43,7 +46,7 @@ class TestDiffAttribs(unittest.TestCase):
                    ('OS/2', 'sTypoDescender', 1400)]
         )
         diff = diff_attribs(font_a, font_b)
-        modified = diff.modified
+        modified = diff['modified']
         self.assertEqual(len(modified), 1)
 
     def test_upm_scale_ignore(self):
@@ -60,7 +63,7 @@ class TestDiffAttribs(unittest.TestCase):
             ]
         )
         diff = diff_attribs(font_a, font_b)
-        modified = diff.modified
+        modified = diff['modified']
         self.assertNotEqual(modified, [])
 
 
@@ -76,11 +79,11 @@ class TestDiffNames(unittest.TestCase):
         self.diff = diff_nametable(self.font_a, self.font_b)
 
     def test_diff_nametable(self):
-        modified = self.diff.modified
+        modified = self.diff['modified']
         self.assertNotEqual(modified, [])
 
     def test_subtract_nametable(self):
-        missing = self.diff.missing
+        missing = self.diff['missing']
         self.assertNotEqual(missing, [])
 
 
@@ -98,7 +101,7 @@ class TestDiffMetrics(unittest.TestCase):
         self.diff = diff_metrics(self.font_a, self.font_b)
 
     def test_modified_metrics(self):
-        modified = self.diff.modified
+        modified = self.diff['modified']
         self.assertNotEqual(modified, [])
 
     def test_upm_scale_metrics(self):
@@ -112,7 +115,7 @@ class TestDiffMetrics(unittest.TestCase):
             attrs=[('head', 'unitsPerEm', 2000)]
         )
         diff = diff_metrics(font_a, font_b,)
-        modified = diff.modified
+        modified = diff['modified']
         self.assertEqual(modified, [])
 
 
@@ -129,14 +132,14 @@ class TestGlyphs(unittest.TestCase):
         font_b = mock_font(
             glyphs=[('a', 100, 100), ('b', 100, 100), ('f.alt', 100, 100)])
         self.diff = diff_glyphs(font_a, font_b)
-        missing = self.diff.missing
+        missing = self.diff['missing']
         self.assertNotEqual(missing, [])
 
     def test_missing_encoded_glyphs(self):
         font_a = mock_font(glyphs=[('a', 0, 0), ('b', 0, 0)])
         font_b = mock_font(glyphs=[('a', 0, 0)])
         self.diff = diff_glyphs(font_a, font_b)
-        missing = self.diff.missing
+        missing = self.diff['missing']
         self.assertNotEqual(missing, [])
 
 
@@ -163,7 +166,7 @@ class TestMarks(unittest.TestCase):
         marks_b = DumpMarks(font_b)
 
         diff = diff_marks(font_a, font_b, marks_a.mark_table, marks_b.mark_table)
-        missing = diff.missing
+        missing = diff['missing']
         self.assertNotEqual(missing, [])
         # Diffenator will only return missing and new marks betweeen
         # matching glyph sets. If font_b is missing many glyphs which
@@ -199,7 +202,7 @@ class TestMarks(unittest.TestCase):
         marks_b = DumpMarks(font_b)
 
         diff = diff_marks(font_a, font_b, marks_a.mark_table, marks_b.mark_table)
-        modified = diff.modified
+        modified = diff['modified']
         self.assertNotEqual(modified, [])
 
     def test_upm_scale_modified_marks(self):
@@ -231,7 +234,7 @@ class TestMarks(unittest.TestCase):
         marks_b = DumpMarks(font_b)
 
         diff = diff_marks(font_a, font_b, marks_a.mark_table, marks_b.mark_table)
-        modified = diff.modified
+        modified = diff['modified']
         self.assertEqual(modified, [])
 
 
@@ -256,7 +259,7 @@ class TestMkMks(unittest.TestCase):
         marks_b = DumpMarks(font_b)
 
         diff = diff_marks(font_a, font_b, marks_a.mkmk_table, marks_b.mkmk_table)
-        missing = diff.missing
+        missing = diff['missing']
         self.assertNotEqual(missing, [])
 
     def test_modified_mkmks(self):
@@ -286,7 +289,7 @@ class TestMkMks(unittest.TestCase):
         marks_b = DumpMarks(font_b)
 
         diff = diff_marks(font_a, font_b, marks_a.mkmk_table, marks_b.mkmk_table)
-        modified = diff.modified
+        modified = diff['modified']
         self.assertNotEqual(modified, [])
         self.assertEqual(len(modified), 4)
 
@@ -306,7 +309,7 @@ class TestKerns(unittest.TestCase):
             glyphs=[('A', 50, 50), ('V', 50, 50)]
         )
         diff = diff_kerning(font_a, font_b)
-        missing = diff.missing
+        missing = diff['missing']
         self.assertNotEqual(missing, [])
         # Missing and new kerns are only reported for matching glyphs
         # this is the same approach as the missing and new marks diff
@@ -328,7 +331,7 @@ class TestKerns(unittest.TestCase):
             """
         )
         diff = diff_kerning(font_a, font_b)
-        modified = diff.modified
+        modified = diff['modified']
         self.assertNotEqual(modified, [])
 
     def test_upm_scale_modified_kerns(self):
@@ -349,7 +352,7 @@ class TestKerns(unittest.TestCase):
             """
         )
         diff = diff_kerning(font_a, font_b)
-        modified = diff.modified
+        modified = diff['modified']
         self.assertEqual(modified, [])
 
 

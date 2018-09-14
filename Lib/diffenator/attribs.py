@@ -1,7 +1,3 @@
-"""
-Dump a font's attribs
-"""
-from fontTools.ttLib import TTFont
 import datetime
 import logging
 
@@ -120,18 +116,34 @@ HEAD = [
 
 
 def dump_attribs(font):
+    """""Dump a font's attribs
+
+    Parameters
+    ----------
+    font: InputFont
+
+    Returns
+    -------
+    dump_table: list
+        Each row in the table is represented as a dict.
+        [
+            {'table': 'OS/2', 'attrib': 'fsSelection': 'value': 128},
+            {'table': 'hhea', 'attrib': 'ascender', 'value': 1100}
+            ...
+        ]
+    """
     attribs = []
-    for tbl_tag, tble in zip(['OS/2', 'hhea', 'gasp', 'head'],
-                             [OS2, HHEA, GASP, HEAD]):
-        if tbl_tag in font:
-            for attr, converter in tble:
+    for table_tag, font_table in zip(['OS/2', 'hhea', 'gasp', 'head'],
+                                     [OS2, HHEA, GASP, HEAD]):
+        if table_tag in font:
+            for attr, converter in font_table:
                 try:
-                    d = {
+                    row = {
                         'attrib': attr,
-                        'value': converter(getattr(font[tbl_tag], attr)),
-                        'table': tbl_tag
+                        'value': converter(getattr(font[table_tag], attr)),
+                        'table': table_tag
                     }
-                    attribs.append(d)
+                    attribs.append(row)
                 except AttributeError:
-                    logger.info("{} Missing attrib {}".format(tbl_tag, attr))
+                    logger.info("{} Missing attrib {}".format(table_tag, attr))
     return attribs
