@@ -1,8 +1,10 @@
 # Diffenator
 
-Python 3 library to compare two fonts against each other.
+Python 3 library to compare two **TTF** fonts against each other.
 
 ## Features
+
+Currenly only supports TrueType flavoured fonts - **CFF/OTF flavour fonts are not supported!**
 
 **Glyph matching**
 
