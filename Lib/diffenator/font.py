@@ -23,6 +23,7 @@ class InputFont(TTFont):
         super(InputFont, self).__init__(file, lazy=False)
         self._input_map = self._gen_inputs() if file else []
         self.is_variable = False
+        self.axis_locations = None
         self.path = file
 
     @property
@@ -53,9 +54,11 @@ class InputGenerator(HbInputGenerator):
             if cur_input is not None:
                 features, characters = cur_input
                 characters = characters.replace(' ', '')
-                inputs.append(Glyph(name, features, unicode(characters)))
+                inputs.append(
+                    Glyph(name, features, unicode(characters), self.font)
+                )
             else:
-                inputs.append(Glyph(name, '', ''))
+                inputs.append(Glyph(name, '', '', self.font))
         return inputs
 
     def input_from_name(self, name, seen=None, pad=False):
@@ -89,7 +92,8 @@ class InputGenerator(HbInputGenerator):
         # see if this glyph has a simple unicode mapping
         if name in self.reverse_cmap:
             text = unichr(self.reverse_cmap[name])
-            inputs.append(((), text))
+            if text != unichr(0):
+                inputs.append(((), text))
 
         # check the substitution features
         inputs.extend(self._inputs_from_gsub(name, seen))
@@ -113,12 +117,13 @@ class InputGenerator(HbInputGenerator):
 
 
 class Glyph:
-    def __init__(self, name, features, characters):
+    def __init__(self, name, features, characters, font):
         self.name = name
         self.features = features
         self.characters = characters
         self.combining = True if characters and uni.combining(characters[0]) else False
         self.kkey = self.characters + ''.join(features)
+        self.font = font
 
     def __repr__(self):
         return self.name

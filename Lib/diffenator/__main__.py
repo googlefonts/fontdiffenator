@@ -36,6 +36,9 @@ diffenator /path/to/font_a.ttf /path/to/font_b.ttf -md
 
 Diff kerning and ignore differences under 30 units:
 diffenator /path/to/font_a.ttf /path/to/font_b.ttf -td kerns --kerns_thresh 30
+
+Diff rendered glyphs:
+diffenator /path/to/font_a.ttf /path/to/font_b.ttf -td glyphs -rd
 """
 from argparse import RawTextHelpFormatter
 from diffenator.diff import diff_fonts
@@ -87,8 +90,11 @@ def main():
                         help="Ignore modified mkmks under this value")
     parser.add_argument('--kerns_thresh', type=int, default=0,
                         help="Ignore modified kerns under this value")
-    parser.add_argument('--glyphs_thresh', type=int, default=0,
+    parser.add_argument('--glyphs_thresh', type=float, default=0,
                         help="Ignore modified glyphs under this value")
+    parser.add_argument('-r', '--render_diffs', action='store_true',
+                        help=("Render glyphs with harfbuzz and compare "
+                              "pixel diffs."))
     args = parser.parse_args()
 
     font_a = InputFont(args.font_a)
@@ -112,6 +118,7 @@ def main():
         marks_threshold=args.marks_thresh,
         mkmks_threshold=args.mkmks_thresh,
         kerns_threshold=args.kerns_thresh,
+        render_diffs=args.render_diffs
     )
 
     report_formatter = CLIFormatter if not args.markdown else MDFormatter
