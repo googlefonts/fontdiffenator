@@ -8,8 +8,11 @@ from diffenator.diff import (
     diff_glyphs,
     diff_marks,
     diff_kerning,
+    diff_area,
+    _diff_images
 )
 import sys
+from PIL import Image
 if sys.version_info.major == 3:
     unicode = str
 
@@ -141,6 +144,73 @@ class TestGlyphs(unittest.TestCase):
         self.diff = diff_glyphs(font_a, font_b)
         missing = self.diff['missing']
         self.assertNotEqual(missing, [])
+
+    def test_area(self):
+        area_a = 100
+        area_b = 75
+        self.assertEqual(diff_area(area_a, area_b), 0.25)
+        self.assertEqual(diff_area(area_b, area_a), 0.25)
+
+    def test_render_diff_r01(self):
+        """Compare a crude F against a blank glyph.
+
+        Half the pixels have changed"""
+        img_a_px = [
+            255, 1, 1,   1,
+            255, 1, 255, 255,
+            255, 1, 1,   1,
+            255, 1, 255, 255,
+        ]
+        img_b_px = [
+            255, 255, 255, 255,
+            255, 255, 255, 255,
+            255, 255, 255, 255,
+            255, 255, 255, 255,
+        ]
+
+        img_a = Image.new('L', (4, 4))
+        img_a.putdata(img_a_px)
+        img_b = Image.new('L', (4, 4))
+        img_b.putdata(img_b_px)
+        self.assertEqual(_diff_images(img_a, img_b), 0.5)
+
+    def test_render_diff_r02(self):
+        """Glyphs are identical"""
+        img_a_px = [
+            255, 1, 1,   1,
+            255, 1, 255, 255,
+            255, 1, 1,   1,
+            255, 1, 255, 255,
+        ]
+        img_b_px = img_a_px
+        img_a = Image.new('L', (4, 4))
+        img_a.putdata(img_a_px)
+        img_b = Image.new('L', (4, 4))
+        img_b.putdata(img_b_px)
+        self.assertEqual(_diff_images(img_a, img_b), 0.0)
+
+    def test_render_diff_r03(self):
+        """Glyphs are offset.
+
+        TODO (M FOLEY) this should return a match.
+        The glyphs haven't changed, just the metrics"""
+        img_a_px = [
+            0  , 0  , 255, 255,
+            0  , 0  , 255, 255,
+            255, 255, 255, 255,
+            255, 255, 255, 255,
+        ]
+        img_b_px = [
+            255, 255, 255, 255,
+            255, 0  , 0, 255,
+            255, 0  , 0, 255,
+            255, 255, 255, 255,
+        ]
+        img_a = Image.new('L', (4, 4))
+        img_a.putdata(img_a_px)
+        img_b = Image.new('L', (4, 4))
+        img_b.putdata(img_b_px)
+        self.assertEqual(_diff_images(img_a, img_b), 0.375)
 
 
 class TestMarks(unittest.TestCase):

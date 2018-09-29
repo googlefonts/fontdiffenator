@@ -85,7 +85,9 @@ from diffenator.attribs import dump_attribs
 from diffenator.names import dump_nametable
 from diffenator.glyphs import dump_glyphs
 from diffenator.marks import DumpMarks
+from diffenator.utils import render_string
 import time
+
 
 __all__ = ['diff_fonts', 'diff_metrics', 'diff_kerning',
            'diff_marks', 'diff_attribs', 'diff_glyphs']
@@ -108,10 +110,11 @@ def timer(method):
 
 def diff_fonts(font_a, font_b,
                categories_to_diff=['*'],
-               glyph_threshold=800,
+               glyph_threshold=0.00,
                marks_threshold=4,
                mkmks_threshold=4,
-               kerns_threshold=2):
+               kerns_threshold=2,
+               render_diffs=False):
     """Diff two fonts.
 
     Parameters
@@ -164,11 +167,12 @@ def diff_fonts(font_a, font_b,
         diffs['attribs'] = diff_attribs(font_a, font_b)
     if 'glyphs' in categories_to_diff or '*' in categories_to_diff:
         diffs['glyphs'] = diff_glyphs(font_a, font_b,
-                                      thresh=glyph_threshold)
+                                      thresh=glyph_threshold,
+                                      render_diffs=render_diffs)
     if 'names' in categories_to_diff or '*' in categories_to_diff:
         diffs['names'] = diff_nametable(font_a, font_b)
 
-    if font_a.is_variable or font_b.is_variable:
+    if (font_a.is_variable or font_b.is_variable) and 'names' in diffs:
         diffs.pop('names')
     return diffs
 
@@ -231,7 +235,7 @@ def _modified_names(names_a, names_b):
 
 
 @timer
-def diff_glyphs(font_a, font_b, thresh=800, scale_upms=True):
+def diff_glyphs(font_a, font_b, thresh=0.00, scale_upms=True, render_diffs=False):
     """Find glyph differences between two fonts.
 
     Rows are matched by glyph kkey, which consists of
@@ -245,6 +249,11 @@ def diff_glyphs(font_a, font_b, thresh=800, scale_upms=True):
     scale_upms:
         Scale values in relation to the font's upms. See readme
         for example.
+    render_diffs: Boolean
+        If True, diff glyphs by rendering them. Return ratio of changed
+        pixels.
+        If False, diff glyphs by calculating the surface area of each glyph.
+        Return ratio of changed surface area.
 
     Returns
     -------
@@ -264,7 +273,7 @@ def diff_glyphs(font_a, font_b, thresh=800, scale_upms=True):
     missing = _subtract_items(glyphs_a_h, glyphs_b_h)
     new = _subtract_items(glyphs_b_h, glyphs_a_h)
     modified = _modified_glyphs(glyphs_a_h, glyphs_b_h, thresh,
-                                scale_upms=scale_upms)
+                                scale_upms=scale_upms, render_diffs=render_diffs)
     return {
         'new': sorted(new, key=lambda k: k['glyph'].name),
         'missing': sorted(missing, key=lambda k: k['glyph'].name),
@@ -272,9 +281,10 @@ def diff_glyphs(font_a, font_b, thresh=800, scale_upms=True):
     }
 
 
-def _modified_glyphs(glyphs_a, glyphs_b, thresh=1000,
-                     upm_a=None, upm_b=None, scale_upms=False):
-
+def _modified_glyphs(glyphs_a, glyphs_b, thresh=0.00,
+                     upm_a=None, upm_b=None, scale_upms=False, render_diffs=False):
+    if render_diffs:
+        print('Rendering glyph differences. Be patient')
     shared = set(glyphs_a.keys()) & set(glyphs_b.keys())
 
     table = []
@@ -283,13 +293,73 @@ def _modified_glyphs(glyphs_a, glyphs_b, thresh=1000,
             glyphs_a[k]['area'] = (glyphs_a[k]['area'] / upm_a) * upm_b
             glyphs_b[k]['area'] = (glyphs_b[k]['area'] / upm_b) * upm_a
 
-        # using abs does not take into consideration if a curve is reversed
-        diff = abs(glyphs_b[k]['area']) - abs(glyphs_a[k]['area'])
+        if render_diffs:
+            font_a = glyphs_a[k]['glyph'].font
+            font_b = glyphs_b[k]['glyph'].font
+            glyph = glyphs_a[k]
+            diff = diff_rendering(font_a, font_b, glyph['string'], glyph['features'])
+        else:
+            # using abs does not take into consideration if a curve is reversed
+            area_a = abs(glyphs_a[k]['area'])
+            area_b = abs(glyphs_b[k]['area'])
+            diff = diff_area(area_a, area_b)
         if diff > thresh:
             glyph = glyphs_a[k]
             glyph['diff'] = diff
             table.append(glyph)
     return table
+
+
+def diff_rendering(font_a, font_b, string, features):
+    """Render a string for each font and return the different pixel count
+    as a percentage"""
+    img_a = render_string(font_a, string, features)
+    img_b = render_string(font_b, string, features)
+    return _diff_images(img_a, img_b)
+
+
+def diff_area(area_a, area_b):
+    area_a = area_a
+    area_b = area_b
+    smallest = min([area_a, area_b])
+    largest = max([area_a, area_b])
+    try:
+        diff = abs((float(smallest) / float(largest)) - 1)
+    except ZeroDivisionError:
+        # for this to happen, both the smallest and largest must be 0. This
+        # means the glyph is a whitespace glyph such as a space or uni00A0
+        diff = 0
+    return diff
+
+
+def _diff_images(img_a, img_b):
+    """Compare two rendered images and return the ratio of changed
+    pixels.
+
+    TODO (M FOLEY) Crop images so there are no sidebearings to glyphs"""
+    width_a, height_a = img_a.size
+    width_b, height_b = img_b.size
+    data_a = img_a.getdata()
+    data_b = img_b.getdata()
+
+    width, height = max(width_a, width_b), max(height_a, height_b)
+    offset_ax = (width - width_a) // 2
+    offset_ay = (height - height_a) // 2
+    offset_bx = (width - width_b) // 2
+    offset_by = (height - height_b) // 2
+
+    diff = 0
+    for y in range(height):
+        for x in range(width):
+            ax, ay = x - offset_ax, y - offset_ay
+            bx, by = x - offset_bx, y - offset_by
+            if (ax < 0 or bx < 0 or ax >= width_a or bx >= width_b or
+                ay < 0 or by < 0 or ay >= height_a or by >= height_b):
+                diff += 1
+            else:
+                if data_a[ax + ay *width_a] != data_b[bx + by * width_b]:
+                    diff += 1
+    return round(diff / float(width * height), 4)
 
 
 @timer
