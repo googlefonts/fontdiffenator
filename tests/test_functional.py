@@ -38,8 +38,8 @@ class TestFunctionality(unittest.TestCase):
             self.assertNotEqual(diff, collections.defaultdict(dict))
 
     def test_diff_vf_vs_static(self):
-        font_a_path = os.path.join(self._path, 'data', 'Fahkwang-VF.ttf')
-        font_b_path = os.path.join(self._path, 'data', 'Fahkwang-Light.ttf')
+        font_a_path = os.path.join(self._path, 'data', 'vf_test', 'Fahkwang-VF.ttf')
+        font_b_path = os.path.join(self._path, 'data', 'vf_test', 'Fahkwang-Light.ttf')
         font_a = InputFont(font_a_path)
         font_b = InputFont(font_b_path)
 
