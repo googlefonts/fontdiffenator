@@ -92,6 +92,10 @@ def vf_instance_from_static(vf_font, static_font):
     style_name = stylename_from_name(
             static_font['name'].getName(4, 3, 1, 1033).toUnicode()
     )
+    if not style_name and static_font['name'].getName(17, 3, 1, 1033):
+        style_name = static_font['name'].getName(17, 3, 1, 1033).toUnicode()
+    if not style_name:
+        style_name = static_font['name'].getName(2, 3, 1, 1033).toUnicode()
     print('Getting instance {}'.format(style_name))
     return vf_instance(vf_font, style_name)
 
