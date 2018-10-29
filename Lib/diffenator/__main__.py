@@ -92,9 +92,11 @@ def main():
                         help="Ignore modified kerns under this value")
     parser.add_argument('--glyphs_thresh', type=float, default=0,
                         help="Ignore modified glyphs under this value")
-    parser.add_argument('-r', '--render_diffs', action='store_true',
-                        help=("Render glyphs with harfbuzz and compare "
+    parser.add_argument('-rd', '--render_diffs', action='store_true',
+                        help=("Render glyphs with hb-view and compare "
                               "pixel diffs."))
+    parser.add_argument('-r', '--render-path',
+                        help="Path to generate before and after gifs.")
     args = parser.parse_args()
 
     font_a = InputFont(args.font_a)
@@ -131,6 +133,10 @@ def main():
         verbose=args.verbose
     )
     print(report)
+
+    if args.render_path:
+        from diffenator.vizualize import diff_render
+        diff_render(font_a, font_b, diff, args.render_path)
 
 
 if __name__ == '__main__':
