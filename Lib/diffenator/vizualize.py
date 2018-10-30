@@ -64,7 +64,7 @@ def _to_array(content, pixel_mode, dst_pitch):
 
 
 def render_table(font, diff_table, size=1500,
-                 title=None, font_position=None, dst=None):
+                 title=None, font_position=None, item_limit=800, dst=None):
     """Use HB, FreeType and Cairo to produce a png for a table.
 
     TODO (M Foley) better packaging for pycairo, freetype-py and uharfbuzz.
@@ -99,7 +99,7 @@ def render_table(font, diff_table, size=1500,
     # Compute height of image
     x, y, baseline = 20, 0, 0
 
-    for row in diff_table:
+    for row in diff_table[:item_limit]:
         x += tab
 
         if x > (width - 20):
@@ -120,10 +120,16 @@ def render_table(font, diff_table, size=1500,
     ctx.set_source_rgb(0.5, 0.5, 0.5)
     ctx.move_to(20, 50)
     if title:
-        ctx.show_text("View: {}".format(title))
+        ctx.show_text("{}: {}".format(title, len(diff_table)))
     ctx.move_to(20, 100)
     if font_position:
         ctx.show_text("Font Set: {}".format(font_position))
+    if len(diff_table) > item_limit:
+        ctx.set_font_size(20)
+        ctx.move_to(20, 150)
+        ctx.show_text("Warning: {} different items. Only showing most serious {}".format(
+            len(diff_table), item_limit)
+        )
 
     # HB font
     hb_face = hb.Face.create(open(font.path, 'rb').read())
@@ -136,8 +142,8 @@ def render_table(font, diff_table, size=1500,
     # Draw glyphs
     x, y, baseline = 20, 200, 0
     x_pos = 20
-    y_pos = 150
-    for idx, row in enumerate(diff_table):
+    y_pos = 200
+    for row in diff_table[:item_limit]:
 
         buf = hb.Buffer.create()
         buf.add_str(row['string'])
@@ -177,9 +183,9 @@ def render_table(font, diff_table, size=1500,
 
 
 def diff_render_table(font_a, font_b, diff_table, dst,
-                size=1500, title=None):
-    img_a = render_table(font_a, diff_table, size, title, 'Before')
-    img_b = render_table(font_b, diff_table, size, title, 'After')
+                      size=1500, title=None, item_limit=800):
+    img_a = render_table(font_a, diff_table, size, title, 'Before', item_limit)
+    img_b = render_table(font_b, diff_table, size, title, 'After', item_limit)
 
     img_a.save(
         dst,
@@ -190,7 +196,7 @@ def diff_render_table(font_a, font_b, diff_table, dst,
     )
 
 
-def diff_render(font_a, font_b, diff_dict, dst, size=1500):
+def diff_render(font_a, font_b, diff_dict, dst, size=1500, item_limit=800):
     """Generate before and after gifs from a diff_fonts object.
 
     Parameters
@@ -217,4 +223,5 @@ def diff_render(font_a, font_b, diff_dict, dst, size=1500):
             diff = diff_dict[cat][sub_cat]
             if not len(diff) > 1:
                 continue
-            diff_render_table(font_a, font_b, diff[:1000], filename, size, title)
+            diff_render_table(font_a, font_b, diff, filename, size, title,
+                              item_limit)
