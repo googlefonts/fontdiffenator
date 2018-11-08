@@ -30,6 +30,10 @@ from diffenator.names import dump_nametable
 from diffenator.metrics import dump_glyph_metrics
 from diffenator.glyphs import dump_glyphs
 from diffenator.reporters import dump_report, CLIFormatter, MDFormatter
+from diffenator.utils import (
+    vf_instance,
+    vf_instance_from_static
+)
 
 
 DUMP_FUNC = {
@@ -49,13 +53,16 @@ def main():
     parser.add_argument('-s', '--strings-only', action='store_true')
     parser.add_argument('-ol', '--output-lines', type=int, default=50)
     parser.add_argument('-md', '--markdown', action='store_true')
-    parser.add_argument('-i', '--vf-instance', default='Regular',
+    parser.add_argument('-i', '--vf-instance',
                         help='Variable font instance to diff')
 
     args = parser.parse_args()
     font = InputFont(args.font)
 
-    if 'fvar' in font:
+    if 'fvar' in font and args.dump not in ('names', 'attribs') and not args.vf_instance:
+        raise Exception("Include a VF instance to dump e.g -i Regular")
+
+    if 'fvar' in font and args.dump not in ('names', 'attribs'):
         font = vf_instance(font, args.vf_instance)
 
     if args.dump in ('marks', 'mkmks'):
