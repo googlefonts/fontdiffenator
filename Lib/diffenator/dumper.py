@@ -51,7 +51,7 @@ def main():
     parser.add_argument('font')
     parser.add_argument('dump', choices=list(DUMP_FUNC.keys()) + ['marks', 'mkmks'])
     parser.add_argument('-s', '--strings-only', action='store_true')
-    parser.add_argument('-ol', '--output-lines', type=int, default=50)
+    parser.add_argument('-ol', '--output-lines', type=int, default=100)
     parser.add_argument('-md', '--markdown', action='store_true')
     parser.add_argument('-i', '--vf-instance',
                         help='Variable font instance to diff')
