@@ -19,5 +19,6 @@ setup(
     },
     install_requires=[
         "fonttools>=3.28.0",
+	"Pillow==5.3.0",
     ],
 )
