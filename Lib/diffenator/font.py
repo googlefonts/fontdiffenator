@@ -24,6 +24,7 @@ class InputFont(TTFont):
         self._input_map = self._gen_inputs() if file else []
         self.is_variable = False
         self.axis_locations = None
+        self.axis_order = None
         self.path = file
 
     @property

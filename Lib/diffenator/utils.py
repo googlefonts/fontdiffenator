@@ -115,7 +115,9 @@ def vf_instance(vf_font, instance_name):
     -------
     InputFont"""
     loc = _axis_loc_from_name(vf_font, instance_name)
+    axis_order = [a.axisTag for a in vf_font['fvar'].axes]
     instance = instantiateVariableFont(vf_font, loc, inplace=True)
+    instance.axis_order = axis_order
     instance.is_variable = True
     instance.axis_locations = loc
     return instance

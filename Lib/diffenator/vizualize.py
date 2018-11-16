@@ -12,7 +12,8 @@ from PIL import Image
 from ctypes import cast, memmove, CDLL, c_void_p, c_int
 from sys import byteorder
 import freetype
-from freetype import FT_PIXEL_MODE_MONO, FT_PIXEL_MODE_GRAY, FT_Pointer, FT_Bitmap
+from freetype.raw import *
+from freetype import FT_PIXEL_MODE_MONO, FT_PIXEL_MODE_GRAY, FT_Pointer, FT_Bitmap, FT_Fixed, FT_Set_Var_Design_Coordinates
 from cairo import Context, ImageSurface, FORMAT_A8, FORMAT_ARGB32
 import uharfbuzz as hb
 import os
@@ -94,6 +95,13 @@ def render_table(font, diff_table, size=1500,
 
     tab = int(size / 25)
     width, height = 1024, 200
+    if font.is_variable:
+        coords = []
+        for name in font.axis_order:
+            coord = FT_Fixed(int(font.axis_locations[name]) << 16)
+            coords.append(coord)
+        ft_coords = (FT_Fixed * len(coords))(*coords)
+        FT_Set_Var_Design_Coordinates(ft_font._FT_Face, len(ft_coords), ft_coords)
     ft_font.set_char_size(upm_size)
 
     # Compute height of image
@@ -137,6 +145,8 @@ def render_table(font, diff_table, size=1500,
     hb_upem = upm_size
 
     hb_font.scale = (hb_upem, hb_upem)
+    if font.is_variable:
+        hb_font.set_variations(font.axis_locations)
     hb.ot_font_set_funcs(hb_font)
 
     # Draw glyphs
