@@ -159,8 +159,11 @@ def render_table(font, diff_table, size=1500,
         buf.add_str(row['string'])
 
         buf.guess_segment_properties()
-        features = {f: True for f in row['features']}
-        hb.shape(hb_font, buf, features)
+        try:
+            features = {f: True for f in row['features']}
+            hb.shape(hb_font, buf, features)
+        except KeyError:
+            hb.shape(hb_font, buf)
 
         char_info = buf.glyph_infos
         char_pos = buf.glyph_positions
