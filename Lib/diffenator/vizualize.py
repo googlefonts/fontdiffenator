@@ -182,6 +182,15 @@ def render_table(font, diff_table, size=1500,
 
         x_pos += tab - (x_pos % tab)
         if x_pos > (width - 20):
+            # add label
+            ctx.set_source_rgb(0.5, 0.5, 0.5)
+            ctx.set_font_size(10)
+            ctx.move_to(width - 20, y_pos)
+            ctx.rotate(1.5708)
+            ctx.show_text(font_position)
+            ctx.set_source_rgb(0,0,0)
+            ctx.rotate(-1.5708)
+            # Start a new row
             y_pos += tab
             x_pos = 20
     Z.flush()
