@@ -114,7 +114,7 @@ def render_table(font, diff_table, size=1500,
             y += tab
             x = 20
     height += y
-    height += 50
+    height += 100
 
     # draw image
     Z = ImageSurface(FORMAT_ARGB32, width, height)
@@ -175,6 +175,7 @@ def render_table(font, diff_table, size=1500,
                 ctx.set_source_surface(glyph_surface,
                                        x_pos + slot.bitmap_left + (pos.x_offset / 64.),
                                        y_pos - slot.bitmap_top - (pos.y_offset / 64.))
+                glyph_surface.flush()
                 ctx.paint()
             x_pos += (pos.x_advance) / 64.
             y_pos += (pos.y_advance) / 64.
