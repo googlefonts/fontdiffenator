@@ -135,7 +135,7 @@ def main():
     print(report)
 
     if args.render_path:
-        from diffenator.vizualize import diff_render
+        from diffenator.visualize import diff_render
         diff_render(font_a, font_b, diff, args.render_path)
 
 
