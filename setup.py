@@ -20,5 +20,8 @@ setup(
     install_requires=[
         "fonttools>=3.28.0",
 	"Pillow==5.3.0",
+        "pycairo==1.18.0",
+        "uharfbuzz==0.3.0",
+        "freetype-py==2.0.0.post6",
     ],
 )

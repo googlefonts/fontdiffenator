@@ -1,3 +1,5 @@
-fonttools==3.29.0
-Pillow==5.2.0
-wheel==0.24.0
+fonttools==3.32.0
+freetype-py==2.0.0.post6
+Pillow==5.3.0
+pycairo==1.18.0
+uharfbuzz==0.3.0
