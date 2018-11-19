@@ -143,7 +143,6 @@ def dump_attribs(font):
     for table_tag, font_table in zip(['OS/2', 'hhea', 'gasp', 'head', 'post'],
                                      [OS2, HHEA, GASP, HEAD, POST]):
         if table_tag in font:
-            print(table_tag)
             for attr, converter in font_table:
                 try:
                     row = {
