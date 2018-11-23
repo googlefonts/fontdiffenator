@@ -406,12 +406,14 @@ def diff_kerning(font_a, font_b, thresh=2, scale_upms=True):
                 if i['left'].kkey in charset_b and i['right'].kkey in charset_a}
 
     missing = _subtract_items(kern_a_h, kern_b_h)
+    missing = [i for i in missing if abs(i["value"]) >= 1]
     new = _subtract_items(kern_b_h, kern_a_h)
+    new = [i for i in new if abs(i["value"]) >= 1]
     modified = _modified_kerns(kern_a_h, kern_b_h, thresh,
                                upm_a, upm_b, scale_upms=scale_upms)
     return {
-        'new': sorted(new, key=lambda k: k['left'].name),
-        'missing': sorted(missing, key=lambda k: k['left'].name),
+        'new': sorted(new, key=lambda k: k['value'], reverse=True),
+        'missing': sorted(missing, key=lambda k: k['value'], reverse=True),
         'modified': sorted(modified, key=lambda k: abs(k['diff']), reverse=True)
     }
 
@@ -620,8 +622,10 @@ def diff_marks(font_a, font_b, marks_a, marks_b, thresh=4, scale_upms=True):
     modified = _modified_marks(marks_a_h, marks_b_h, thresh,
                                upm_a, upm_b, scale_upms=True)
     return {
-        'new': sorted(new, key=lambda k: k['base_glyph'].name),
-        'missing': sorted(missing, key=lambda k: k['base_glyph'].name),
+        'new': sorted(new, key=lambda k:
+                   abs(k["base_x"] - k["mark_y"]) + abs(k["base_y"] + k["mark_y"]), reverse=True),
+        'missing': sorted(missing, key=lambda k:
+                   abs(k["base_x"] - k["mark_y"]) + abs(k["base_y"] + k["mark_y"]), reverse=True),
         'modified': sorted(modified, key=lambda k: abs(k['diff_x']) + abs(k['diff_y']), reverse=True)
     }
 

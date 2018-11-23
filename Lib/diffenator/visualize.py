@@ -65,7 +65,7 @@ def _to_array(content, pixel_mode, dst_pitch):
 
 
 def render_table(font, diff_table, size=1500,
-                 title=None, font_position=None, item_limit=800, dst=None):
+                 title=None, font_position=None, item_limit=1000, dst=None):
     """Use HB, FreeType and Cairo to produce a png for a table.
 
     TODO (M Foley) better packaging for pycairo, freetype-py and uharfbuzz.
@@ -209,7 +209,7 @@ def render_table(font, diff_table, size=1500,
 
 
 def diff_render_table(font_a, font_b, diff_table, dst,
-                      size=1500, title=None, item_limit=800):
+                      size=1500, title=None, item_limit=1000):
     with tempfile.NamedTemporaryFile() as img_a_path, \
          tempfile.NamedTemporaryFile() as img_b_path:
         render_table(font_a, diff_table, size, title, 'Before', item_limit, dst=img_a_path)
@@ -225,7 +225,7 @@ def diff_render_table(font_a, font_b, diff_table, dst,
             )
 
 
-def diff_render(font_a, font_b, diff_dict, dst, size=1500, item_limit=800):
+def diff_render(font_a, font_b, diff_dict, dst, size=1500, item_limit=1000):
     """Generate before and after gifs from a diff_fonts object.
 
     Parameters
