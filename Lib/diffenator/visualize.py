@@ -18,7 +18,7 @@ from cairo import Context, ImageSurface, FORMAT_A8, FORMAT_ARGB32
 import uharfbuzz as hb
 import os
 import shutil
-
+import tempfile
 from diffenator.font import InputFont
 from diffenator.diff import diff_fonts
 try:
@@ -200,6 +200,8 @@ def render_table(font, diff_table, size=1500,
     Z.flush()
     if dst:
         Z.write_to_png(dst)
+    # TODO (M Foley) GDB Debug segmentation fault. It only occurs on large
+    # images.
     else:
         img = StringIO()
         Z.write_to_png(img)
@@ -208,16 +210,19 @@ def render_table(font, diff_table, size=1500,
 
 def diff_render_table(font_a, font_b, diff_table, dst,
                       size=1500, title=None, item_limit=800):
-    img_a = render_table(font_a, diff_table, size, title, 'Before', item_limit)
-    img_b = render_table(font_b, diff_table, size, title, 'After', item_limit)
+    with tempfile.NamedTemporaryFile() as img_a_path, \
+         tempfile.NamedTemporaryFile() as img_b_path:
+        render_table(font_a, diff_table, size, title, 'Before', item_limit, dst=img_a_path)
+        render_table(font_b, diff_table, size, title, 'After', item_limit, dst=img_b_path)
 
-    img_a.save(
-        dst,
-        save_all=True,
-        append_images=[img_b],
-        loop=10000,
-        duration=1000
-    )
+        with Image.open(img_a_path) as img_a, Image.open(img_b_path) as img_b:
+            img_a.save(
+                dst,
+                save_all=True,
+                append_images=[img_b],
+                loop=10000,
+                duration=1000
+            )
 
 
 def diff_render(font_a, font_b, diff_dict, dst, size=1500, item_limit=800):
