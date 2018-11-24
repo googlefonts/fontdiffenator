@@ -1,6 +1,6 @@
 # Diffenator
 
-Python 3 library to compare two **TTF** fonts against each other.
+Python 3 library/tool to compare two **TTF** fonts against each other. It's capable of producing diff images using Harfbuzz, Cairo and FreeType. It can also produce Markdown reports for Github.
 
 ## Features
 
@@ -12,7 +12,7 @@ Most differs will only compare glyphs if they have matching names. Diffenator ma
 
 **Mark positioning**
 
-Marks coordinates are relative to the glyph's outlines; not the glyph metrics.
+Marks coordinates are relative to the glyph's outlines, not the glyph metrics.
 
 
 **Kerning**
@@ -54,6 +54,15 @@ The developers of fontTools are working on [otlLib](https://github.com/fonttools
 pip install fontdiffenator
 ```
 
+To generate images, you will need to install Cairo, FreeType and Harfbuzz. Easiest way to do this is by using a package manager. For OS X we can use brew.
+
+```
+brew install cairo
+brew install freetype
+brew install harfbuzz
+```
+
+
 ### Dev install 
 ```
 $ git clone https://github.com/googlefonts/fontdiffenator
@@ -67,6 +76,10 @@ $ pip install . # -e . for dev installation
 
 ```
 $ diffenator ./path/to/font_a.ttf ./path/to/font_b.ttf
+
+# Generate before and after gifs
+
+$ diffenator ./path/to/font_a.ttf ./path/to/font_b.ttf -r ./path/to/out_gifs
 ```
 
 ## Python (Google fonts):
@@ -74,9 +87,9 @@ $ diffenator ./path/to/font_a.ttf ./path/to/font_b.ttf
 ```
 >>> from diffenator import diff_fonts
 >>> from diffenator.font import InputFont
->>> font_a_path = InputFont('./path/to/font_a.ttf')
->>> font_b_path = InputFont('./path/to/font_b.ttf')
->>> diff_fonts(font_a_path, font_b_path)
+>>> font_a = InputFont('./path/to/font_a.ttf')
+>>> font_b = InputFont('./path/to/font_b.ttf')
+>>> diff_fonts(font_a, font_b)
 ...
 ```
 
@@ -85,6 +98,5 @@ $ diffenator ./path/to/font_a.ttf ./path/to/font_b.ttf
 Tests are located in the /tests dir. Tests are based on the standard unittest framework.
 
 ```
-python /tests/test_diff.py
-python /tests/test_functionality.py
+sh ./tests/run.sh
 ```

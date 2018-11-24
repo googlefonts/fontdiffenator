@@ -22,6 +22,7 @@ dumper /path/to/font.ttf -md
 from __future__ import print_function
 from argparse import RawTextHelpFormatter
 import argparse
+import os
 from diffenator.font import InputFont
 from diffenator.kerning import dump_kerning
 from diffenator.marks import DumpMarks
@@ -55,6 +56,8 @@ def main():
     parser.add_argument('-md', '--markdown', action='store_true')
     parser.add_argument('-i', '--vf-instance',
                         help='Variable font instance to diff')
+    parser.add_argument('-r', '--render-path',
+            help="Path to generate png to")
 
     args = parser.parse_args()
     font = InputFont(args.font)
@@ -73,12 +76,18 @@ def main():
             table = dump_marks.mkmk_table
     else:
         table = DUMP_FUNC[args.dump](font)
-
+    report_len = len(table)
     table = table[:args.output_lines]
 
     formatter = CLIFormatter if not args.markdown else MDFormatter
     report = dump_report(table, args.dump, Formatter=formatter)
     print(report)
+    if args.output_lines < report_len:
+        print(("Showing {} out of {} items. Increase the flag -ol "
+               "to view more".format(args.output_lines, report_len)))
+    if args.render_path:
+        from diffenator.visualize import render_table
+        render_table(font, table, dst=args.render_path)
 
 
 if __name__ == '__main__':

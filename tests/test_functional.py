@@ -16,6 +16,8 @@ This test is slow and should be run on challenging fonts.
 from diffenator.diff import diff_fonts
 from diffenator.font import InputFont
 from diffenator.utils import vf_instance
+from diffenator.visualize import render_table
+from diffenator.glyphs import dump_glyphs
 from itertools import permutations
 import collections
 from glob import glob
@@ -46,6 +48,15 @@ class TestFunctionality(unittest.TestCase):
         font_a = vf_instance(font_a, 'Light')
         diff = diff_fonts(font_a, font_b)
         self.assertNotEqual(diff, collections.defaultdict(dict))
+
+
+class TestVisualize(unittest.TestCase):
+    def test_viz(self):
+        font_path = os.path.join(os.path.dirname(__file__), "data", "Play-Regular.ttf")
+        font = InputFont(font_path)
+        glyphs = dump_glyphs(font)
+        img = render_table(font, glyphs)
+        self.assertNotEqual(img, None)
 
 
 if __name__ == '__main__':
