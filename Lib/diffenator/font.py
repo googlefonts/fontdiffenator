@@ -1,9 +1,18 @@
-"""InputFont inherits TTFont and adds an input map attribute. This attrib
+"""DFont inherits TTFont and adds an input map attribute. This attrib
 contains a glyph object which contains the input, features for each glyph.
 """
 from fontTools.misc.py23 import unichr
 from fontTools.ttLib import TTFont
+from fontTools.varLib.mutator import instantiateVariableFont
 from diffenator.hbinput import HbInputGenerator
+from diffenator.dump import (
+        DumpAnchors,
+        dump_kerning,
+        dump_glyphs,
+        dump_glyph_metrics,
+        dump_attribs,
+        dump_nametable
+)
 import sys
 try:
     # try and import unicodedata2 backport for py2.7.
@@ -16,29 +25,121 @@ if sys.version_info.major == 3:
     unicode = str
 
 
-class InputFont(TTFont):
+class DFont(TTFont):
     """Wrapper for TTFont object which contains an input map to generate
     a glyph. This object will be deprecated once otLib progresses"""
     def __init__(self, file=None, lazy=False):
-        super(InputFont, self).__init__(file, lazy=False)
+        self._ttfont = TTFont(file)
         self._input_map = self._gen_inputs() if file else []
-        self.is_variable = False
-        self.axis_locations = None
-        self.axis_order = None
-        self.path = file
+        self._axis_locations = None
+        self._axis_order = None
+        self._path = file
+        self._src = self._ttfont
+        self._glyphs = self._marks = self._mkmks = self._kerns = \
+            self._glyph_metrics = self._names = self._attribs = None
+
+        if not lazy:
+            self.recalc_tables()
+
+    @property
+    def path(self):
+        return self._path
 
     @property
     def input_map(self):
         return self._input_map
 
+    @property
+    def axis_order(self):
+        return self._axis_order
+
+    @property
+    def axis_locations(self):
+        return self._axis_locations
+
     def _gen_inputs(self):
-        if not 'cmap' in self.keys():
+        if not 'cmap' in self._ttfont.keys():
             return []
-        inputs = InputGenerator(self).all_inputs()
+        inputs = InputGenerator(self._ttfont).all_inputs()
         return {g.name: g for g in inputs}
 
     def recalc_input_map(self):
         self._input_map = self._gen_inputs()
+
+    @property
+    def is_variable(self):
+        if 'fvar' in self._src:
+            return True
+        return False
+
+    def set_variations(self, axes):
+        """Instantiate a ttfont VF with axes vals"""
+        if self.is_variable:
+            self._ttfont = instantiateVariableFont(self._src, axes, inplace=False)
+            self._axis_order = [a.axisTag for a in self._src['fvar'].axes]
+            self._axis_locations = {a.axisTag: a.defaultValue for a in
+                                    self._src['fvar'].axes}
+            for axis in axes:
+                if axis in self._axis_locations:
+                    self._axis_locations[axis] = axes[axis]
+                else:
+                    print("font has no axis called {}".format(axis))
+            self.recalc_tables()
+        else:
+            print("Not vf")
+
+    def set_variations_from_static(self, dfont):
+        """Set the variations of a variable font using the vals from a
+        static font"""
+        variations = {}
+        if self.is_variable:
+            variations["wght"] = dfont._ttfont["OS/2"].usWeightClass
+            # TODO (M Foley) add wdth, slnt axes
+            self.set_variations(variations)
+
+    def recalc_tables(self):
+        """Recalculate DFont tables"""
+        anchors = DumpAnchors(self)
+        self._glyphs = dump_glyphs(self)
+        self._marks = anchors.marks_table
+        self._mkmks = anchors.mkmks_table
+        self._glyph_metrics = dump_glyph_metrics(self)
+        self._attribs = dump_attribs(self)
+        self._names = dump_nametable(self)
+        self._kerns = dump_kerning(self)
+        self._metrics = dump_glyph_metrics(self)
+
+    @property
+    def glyphs(self):
+        return self._glyphs
+
+    @property
+    def marks(self):
+        return self._marks
+
+    @property
+    def mkmks(self):
+        return self._mkmks
+
+    @property
+    def glyph_metrics(self):
+        return self._glyph_metrics
+
+    @property
+    def attribs(self):
+        return self._attribs
+
+    @property
+    def names(self):
+        return self._names
+
+    @property
+    def kerns(self):
+        return self._kerns
+
+    @property
+    def metrics(self):
+        return self._metrics
 
 
 class InputGenerator(HbInputGenerator):

@@ -79,13 +79,10 @@ new =
 """
 from __future__ import print_function
 import collections
-from diffenator.metrics import dump_glyph_metrics
-from diffenator.kerning import dump_kerning
-from diffenator.attribs import dump_attribs
-from diffenator.names import dump_nametable
-from diffenator.glyphs import dump_glyphs
-from diffenator.marks import DumpMarks
 from diffenator.utils import render_string
+from diffenator import DiffTable
+import functools
+import os
 import time
 
 
@@ -108,73 +105,117 @@ def timer(method):
     return timed
 
 
-def diff_fonts(font_a, font_b,
-               categories_to_diff=['*'],
-               glyph_threshold=0.00,
-               marks_threshold=4,
-               mkmks_threshold=4,
-               kerns_threshold=2,
+class DiffFonts:
+    settings = dict(
+            glyphs_thresh=0.011,
+        marks_thresh=5,
+        mkmks_thresh=5,
+        metrics_thresh=2,
+        kerns_thresh=0,
+    )
+    def __init__(self, font_a, font_b, settings=None, lazy=False):
+        self._font_a = font_a
+        self._font_b = font_b
+        self._data = collections.defaultdict(dict)
+        if settings:
+            self.settings = settings
+
+        if not lazy:
+            self.names()
+            self.attribs()
+            self.glyphs()
+            self.kerns()
+            self.metrics()
+            self.marks()
+            self.mkmks()
+
+    def to_dict(self):
+        serialised_data = self._serialise()
+        return serialised_data
+
+    def to_gifs(self, dst):
+        """output before and after gifs for table"""
+        if not os.path.isdir(dst):
+            os.mkdir(dst)
+
+        for table in self._data:
+            for subtable in self._data[table]:
+                _table = self._data[table][subtable]
+                if not _table.renderable or len(_table) < 1:
+                    continue
+                filename = _table.table_name.replace(" ", "_") + ".gif"
+                img_path = os.path.join(dst, filename)
+                _table.to_gif(img_path)
+                
+
+    def to_txt(self, limit=50, dst=None):
+        """Output before and after report as .txt doc"""
+        report = []
+        for table in self._data:
+            for subtable in self._data[table]:
+                _table = self._data[table][subtable]
+                if len(_table) < 1:
+                    continue
+                report.append(_table.to_txt(limit=limit))
+        if dst:
+            with open(dst, 'w') as doc:
+                doc.write("\n\n".join(report))
+        else:
+            return "\n\n".join(report)
+
+    def to_md(self, limit=50, dst=None):
+        """output before and after report as .md doc"""
+        report = []
+        for table in self._data:
+            for subtable in self._data[table]:
+                _table = self._data[table][subtable]
+                if len(_table) < 1:
+                    continue
+                report.append(_table.to_md(limit=limit))
+        if dst:
+            with open(dst, 'w') as doc:
+                doc.write("\n\n".join(report))
+        else:
+            return "\n\n".join(report)
+
+    def _serialise(self):
+        """Serialiser for container data"""
+        pass
+
+    def marks(self, threshold=settings["marks_thresh"]):
+        self._data["marks"] = diff_marks(
+                self._font_a, self._font_b,
+                self._font_a.marks, self._font_b.marks,
+                name="marks",
+                thresh=threshold
+        )
+
+    def mkmks(self, threshold=settings["mkmks_thresh"]):
+        self._data["mkmks"] = diff_marks(
+            self._font_a, self._font_b,
+            self._font_a.mkmks, self._font_b.mkmks,
+            name="mkmks",
+            thresh=threshold
+        )
+
+    def metrics(self, threshold=settings["metrics_thresh"]):
+        self._data["metrics"] = diff_metrics(self._font_a, self._font_b,
+                thresh=threshold)
+
+    def glyphs(self, threshold=settings["glyphs_thresh"],
                render_diffs=False):
-    """Diff two fonts.
+        self._data["glyphs"] = diff_glyphs(self._font_a, self._font_b,
+            thresh=threshold, render_diffs=render_diffs)
 
-    Parameters
-    ----------
-    font_a: InputFont
-    font_b: InputFont
-    categories_to_diff: list
-        Categories which need diffing. Choices are limited to
-        'kerns', 'metrics', 'marks', 'mkmks', 'attribs',
-        'glyphs' and 'names'. Multiple choices allowed.
-        "*" is a wildcard to diff all categories.
-    glyph_threshold: int
-    marks_threshold: int
-    mkmks_threshold: int
-    kerns_threshold: int
-        Ignore category differences which are below this value
+    def kerns(self, threshold=settings["kerns_thresh"]):
+        self._data["kerns"] = diff_kerning(self._font_a, self._font_b,
+            thresh=threshold)
 
-    Returns
-    -------
-    defaultdict
-        {
-            "glyphs': {"new": [diff_table],
-                       "missing": [diff_table],
-                       "modified": [diff_table]},
-            "marks": {"new": [diff_table],
-                      "missing": [diff_table],
-                      "modififed": [diff_table]},
-            ...
-        }
-    """
-    diffs = collections.defaultdict(dict)
+    def attribs(self):
+        self._data["attribs"] = diff_attribs(self._font_a, self._font_b)
 
-    marks_a = DumpMarks(font_a)
-    marks_b = DumpMarks(font_b)
-
-    if 'kerns' in categories_to_diff or '*' in categories_to_diff:
-        diffs['kerns'] = diff_kerning(font_a, font_b,
-                                      thresh=kerns_threshold)
-    if 'metrics' in categories_to_diff or '*' in categories_to_diff:
-        diffs['metrics'] = diff_metrics(font_a, font_b)
-    if 'marks' in categories_to_diff or '*' in categories_to_diff:
-        diffs['marks'] = diff_marks(font_a, font_b, marks_a.mark_table,
-                                    marks_b.mark_table,
-                                    thresh=marks_threshold)
-    if 'mkmks' in categories_to_diff or '*' in categories_to_diff:
-        diffs['mkmks'] = diff_marks(font_a, font_b, marks_a.mkmk_table,
-                                    marks_b.mkmk_table,
-                                    thresh=mkmks_threshold)
-    if 'attribs' in categories_to_diff or '*' in categories_to_diff:
-        diffs['attribs'] = diff_attribs(font_a, font_b)
-    if 'glyphs' in categories_to_diff or '*' in categories_to_diff:
-        diffs['glyphs'] = diff_glyphs(font_a, font_b,
-                                      thresh=glyph_threshold,
-                                      render_diffs=render_diffs)
-    if 'names' in categories_to_diff or '*' in categories_to_diff:
-        diffs['names'] = diff_nametable(font_a, font_b)
-
-    if (font_a.is_variable or font_b.is_variable) and 'names' in diffs:
-        diffs.pop('names')
-    return diffs
+    def names(self):
+        self._data["names"] = diff_nametable(self._font_a, self._font_b)
 
 
 def _subtract_items(items_a, items_b):
@@ -197,13 +238,13 @@ def diff_nametable(font_a, font_b):
     -------
     dict
         {
-            "new": [diff_table],
+            "new": diff_table,
             "missing": [diff_table],
             "modified": [diff_table]
         }
     """
-    nametable_a = dump_nametable(font_a)
-    nametable_b = dump_nametable(font_b)
+    nametable_a = font_a.names
+    nametable_b = font_b.names
 
     names_a_h = {i['id']: i for i in nametable_a}
     names_b_h = {i['id']: i for i in nametable_b}
@@ -212,10 +253,19 @@ def diff_nametable(font_a, font_b):
     new = _subtract_items(names_b_h, names_a_h)
     modified = _modified_names(names_a_h, names_b_h)
 
+    new = DiffTable("names new", font_a, font_b, data=new)
+    new.report_columns(["id", "string"])
+    new.sort(key=lambda k: k["id"])
+    missing = DiffTable("names missing", font_a, font_b, data=missing)
+    missing.report_columns(["id", "string"])
+    missing.sort(key=lambda k: k["id"])
+    modified = DiffTable("names modified", font_a, font_b, data=modified)
+    modified.report_columns(["id", "string_a", "string_b"])
+    modified.sort(key=lambda k: k["id"])
     return {
-        'new': sorted(new, key=lambda k: k['id']),
-        'missing': sorted(missing, key=lambda k: k['id']),
-        'modified': sorted(modified, key=lambda k: k['id']),
+        'new': new,
+        'missing': missing,
+        'modified': modified,
     }
 
 
@@ -264,8 +314,8 @@ def diff_glyphs(font_a, font_b, thresh=0.00, scale_upms=True, render_diffs=False
             "modified": [diff_table]
         }
     """
-    glyphs_a = dump_glyphs(font_a)
-    glyphs_b = dump_glyphs(font_b)
+    glyphs_a = font_a.glyphs
+    glyphs_b = font_b.glyphs
 
     glyphs_a_h = {r['glyph'].kkey: r for r in glyphs_a}
     glyphs_b_h = {r['glyph'].kkey: r for r in glyphs_b}
@@ -274,10 +324,22 @@ def diff_glyphs(font_a, font_b, thresh=0.00, scale_upms=True, render_diffs=False
     new = _subtract_items(glyphs_b_h, glyphs_a_h)
     modified = _modified_glyphs(glyphs_a_h, glyphs_b_h, thresh,
                                 scale_upms=scale_upms, render_diffs=render_diffs)
+    
+    new = DiffTable("glyphs new", font_a, font_b, data=new, renderable=True)
+    new.report_columns(["glyph", "area", "string"])
+    new.sort(key=lambda k: k["glyph"].name)
+
+    missing = DiffTable("glyphs missing", font_a, font_b, data=missing, renderable=True)
+    missing.report_columns(["glyph", "area", "string"])
+    missing.sort(key=lambda k: k["glyph"].name)
+
+    modified = DiffTable("glyphs modified", font_a, font_b, data=modified, renderable=True)
+    modified.report_columns(["glyph", "diff", "string"])
+    modified.sort(key=lambda k: abs(k["diff"]), reverse=True)
     return {
-        'new': sorted(new, key=lambda k: k['glyph'].name),
-        'missing': sorted(missing, key=lambda k: k['glyph'].name),
-        'modified': sorted(modified, key=lambda k: k['diff'], reverse=True)
+        'new': new,
+        'missing': missing,
+        'modified': modified
     }
 
 
@@ -391,11 +453,11 @@ def diff_kerning(font_a, font_b, thresh=2, scale_upms=True):
             "modified": [diff_table]
         }
     """
-    kern_a = dump_kerning(font_a)
-    kern_b = dump_kerning(font_b)
+    kern_a = font_a.kerns
+    kern_b = font_b.kerns
 
-    upm_a = font_a['head'].unitsPerEm
-    upm_b = font_b['head'].unitsPerEm
+    upm_a = font_a._ttfont['head'].unitsPerEm
+    upm_b = font_b._ttfont['head'].unitsPerEm
 
     charset_a = set([font_a.input_map[g].kkey for g in font_a.input_map])
     charset_b = set([font_b.input_map[g].kkey for g in font_b.input_map])
@@ -411,10 +473,21 @@ def diff_kerning(font_a, font_b, thresh=2, scale_upms=True):
     new = [i for i in new if abs(i["value"]) >= 1]
     modified = _modified_kerns(kern_a_h, kern_b_h, thresh,
                                upm_a, upm_b, scale_upms=scale_upms)
+    missing = DiffTable("kerns missing", font_a, font_b, data=missing, renderable=True)
+    missing.report_columns(["left", "right", "value", "string"])
+    missing.sort(key=lambda k: abs(k["value"]), reverse=True)
+
+    new = DiffTable("kerns new", font_a, font_b, data=new, renderable=True)
+    new.report_columns(["left", "right", "value", "string"])
+    new.sort(key=lambda k: abs(k["value"]), reverse=True)
+    
+    modified = DiffTable("kerns modified", font_a, font_b, data=modified, renderable=True)
+    modified.report_columns(["left", "right", "diff", "string"])
+    modified.sort(key=lambda k: abs(k["diff"]), reverse=True)
     return {
-        'new': sorted(new, key=lambda k: k['value'], reverse=True),
-        'missing': sorted(missing, key=lambda k: k['value'], reverse=True),
-        'modified': sorted(modified, key=lambda k: abs(k['diff']), reverse=True)
+        'new': new,
+        'missing': missing,
+        'modified': modified, 
     }
 
 
@@ -463,19 +536,22 @@ def diff_metrics(font_a, font_b, thresh=1, scale_upms=True):
             "modified": [diff_table]
         }
     """
-    metrics_a = dump_glyph_metrics(font_a)
-    metrics_b = dump_glyph_metrics(font_b)
+    metrics_a = font_a.metrics
+    metrics_b = font_b.metrics
 
-    upm_a = font_a['head'].unitsPerEm
-    upm_b = font_b['head'].unitsPerEm
+    upm_a = font_a._ttfont['head'].unitsPerEm
+    upm_b = font_b._ttfont['head'].unitsPerEm
 
     metrics_a_h = {i['glyph'].kkey: i for i in metrics_a}
     metrics_b_h = {i['glyph'].kkey: i for i in metrics_b}
 
     modified = _modified_metrics(metrics_a_h, metrics_b_h, thresh,
                                  upm_a, upm_b, scale_upms)
+    modified = DiffTable("metrics modified", font_a, font_b, data=modified, renderable=True)
+    modified.report_columns(["glyph", "diff_adv"])
+    modified.sort(key=lambda k: k["diff_adv"], reverse=True)
     return {
-        'modified': sorted(modified, key=lambda k: k['diff_adv'], reverse=True)
+            'modified': modified 
     }
 
 
@@ -521,17 +597,20 @@ def diff_attribs(font_a, font_b, scale_upm=True):
             "modified": [diff_table]
         }
     """
-    attribs_a = dump_attribs(font_a)
-    attribs_b = dump_attribs(font_b)
+    attribs_a = font_a.attribs
+    attribs_b = font_b.attribs
 
-    upm_a = font_a['head'].unitsPerEm
-    upm_b = font_b['head'].unitsPerEm
+    upm_a = font_a._ttfont['head'].unitsPerEm
+    upm_b = font_b._ttfont['head'].unitsPerEm
 
     attribs_a_h = {i['attrib']: i for i in attribs_a}
     attribs_b_h = {i['attrib']: i for i in attribs_b}
 
     modified = _modified_attribs(attribs_a_h, attribs_b_h,
                                  upm_a, upm_b, scale_upm=scale_upm)
+    modified = DiffTable("attribs modified", font_a, font_b, data=modified)
+    modified.report_columns(["table", "attrib", "value_a", "value_b"])
+    modified.sort(key=lambda k: k["table"])
     return {'modified': modified}
 
 
@@ -579,7 +658,8 @@ def _modified_attribs(attribs_a, attribs_b,
 
 
 @timer
-def diff_marks(font_a, font_b, marks_a, marks_b, thresh=4, scale_upms=True):
+def diff_marks(font_a, font_b, marks_a, marks_b,
+               name=None, thresh=4, scale_upms=True):
     """diff mark positioning.
 
     Marks are flattened first.
@@ -606,8 +686,8 @@ def diff_marks(font_a, font_b, marks_a, marks_b, thresh=4, scale_upms=True):
             "modified": [diff_table]
         }
     """
-    upm_a = font_a['head'].unitsPerEm
-    upm_b = font_b['head'].unitsPerEm
+    upm_a = font_a._ttfont['head'].unitsPerEm
+    upm_b = font_b._ttfont['head'].unitsPerEm
 
     charset_a = set([font_a.input_map[g].kkey for g in font_a.input_map])
     charset_b = set([font_b.input_map[g].kkey for g in font_b.input_map])
@@ -621,12 +701,27 @@ def diff_marks(font_a, font_b, marks_a, marks_b, thresh=4, scale_upms=True):
     new = _subtract_items(marks_b_h, marks_a_h)
     modified = _modified_marks(marks_a_h, marks_b_h, thresh,
                                upm_a, upm_b, scale_upms=True)
+
+    new = DiffTable(name + "_new", font_a, font_b, data=new, renderable=True)
+    new.report_columns(["base_glyph", "base_x", "base_y",
+                        "mark_glyph", "mark_x", "mark_y"])
+    new.sort(key=lambda k: abs(k["base_x"]) - abs(k["mark_x"]) + \
+                           abs(k["base_y"]) - abs(k["mark_y"]))
+
+    missing = DiffTable(name + "_missing", font_a, font_b, data=missing,
+                        renderable=True)
+    missing.report_columns(["base_glyph", "base_x", "base_y",
+                            "mark_glyph", "mark_x", "mark_y"])
+    missing.sort(key=lambda k: abs(k["base_x"]) - abs(k["mark_x"]) + \
+                               abs(k["base_y"]) - abs(k["mark_y"]))
+    modified = DiffTable(name + "_modified", font_a, font_b, data=modified,
+                         renderable=True)
+    modified.report_columns(["base_glyph", "mark_glyph", "diff_x", "diff_y"])
+    modified.sort(key=lambda k: abs(k["diff_x"]) + abs(k["diff_y"]), reverse=True)
     return {
-        'new': sorted(new, key=lambda k:
-                   abs(k["base_x"] - k["mark_y"]) + abs(k["base_y"] + k["mark_y"]), reverse=True),
-        'missing': sorted(missing, key=lambda k:
-                   abs(k["base_x"] - k["mark_y"]) + abs(k["base_y"] + k["mark_y"]), reverse=True),
-        'modified': sorted(modified, key=lambda k: abs(k['diff_x']) + abs(k['diff_y']), reverse=True)
+        "new": new,
+        "missing": missing,
+        "modified": modified,
     }
 
 

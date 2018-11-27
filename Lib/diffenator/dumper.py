@@ -21,36 +21,17 @@ dumper /path/to/font.ttf -md
 """
 from __future__ import print_function
 from argparse import RawTextHelpFormatter
+from diffenator.font import DFont
+from diffenator.diff import DiffFonts
+from diffenator import CHOICES
 import argparse
-import os
-from diffenator.font import InputFont
-from diffenator.kerning import dump_kerning
-from diffenator.marks import DumpMarks
-from diffenator.attribs import dump_attribs
-from diffenator.names import dump_nametable
-from diffenator.metrics import dump_glyph_metrics
-from diffenator.glyphs import dump_glyphs
-from diffenator.reporters import dump_report, CLIFormatter, MDFormatter
-from diffenator.utils import (
-    vf_instance,
-    vf_instance_from_static
-)
-
-
-DUMP_FUNC = {
-    'kerns': dump_kerning,
-    'attribs': dump_attribs,
-    'names': dump_nametable,
-    'metrics': dump_glyph_metrics,
-    'glyphs': dump_glyphs
-}
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=RawTextHelpFormatter)
     parser.add_argument('font')
-    parser.add_argument('dump', choices=list(DUMP_FUNC.keys()) + ['marks', 'mkmks'])
+    parser.add_argument('dump', choices=CHOICES)
     parser.add_argument('-s', '--strings-only', action='store_true')
     parser.add_argument('-ol', '--output-lines', type=int, default=100)
     parser.add_argument('-md', '--markdown', action='store_true')
@@ -58,37 +39,33 @@ def main():
                         help='Variable font instance to diff')
     parser.add_argument('-r', '--render-path',
             help="Path to generate png to")
-
     args = parser.parse_args()
-    font = InputFont(args.font)
 
-    if 'fvar' in font and args.dump not in ('names', 'attribs') and not args.vf_instance:
-        raise Exception("Include a VF instance to dump e.g -i Regular")
+    font = DFont(args.font)
 
-    if 'fvar' in font and args.dump not in ('names', 'attribs'):
-        font = vf_instance(font, args.vf_instance)
+    if font.is_variable and not args.vf_instance:
+        raise Exception("Include a VF instance to dump e.g -i wght=400")
 
-    if args.dump in ('marks', 'mkmks'):
-        dump_marks = DumpMarks(font)
-        if args.dump == 'marks':
-            table = dump_marks.mark_table
-        else:
-            table = dump_marks.mkmk_table
-    else:
-        table = DUMP_FUNC[args.dump](font)
+    if args.vf_instance:
+        variations = {s.split('=')[0]: float(s.split('=')[1]) for s
+                      in args.vf_instance.split(", ")}
+        font.set_variations(variations)
+
+    table = getattr(font, args.dump)
     report_len = len(table)
-    table = table[:args.output_lines]
 
-    formatter = CLIFormatter if not args.markdown else MDFormatter
-    report = dump_report(table, args.dump, Formatter=formatter)
-    print(report)
+    if args.markdown:
+        print(table.to_md(args.output_lines, strings_only=args.strings_only))
+    else:
+        print(table.to_txt(args.output_lines, strings_only=args.strings_only))
+
     if args.output_lines < report_len:
         print(("Showing {} out of {} items. Increase the flag -ol "
                "to view more".format(args.output_lines, report_len)))
     if args.render_path:
-        from diffenator.visualize import render_table
-        render_table(font, table, dst=args.render_path)
+        table.to_png(args.render_path, limit=args.output_lines)
 
 
 if __name__ == '__main__':
     main()
+
