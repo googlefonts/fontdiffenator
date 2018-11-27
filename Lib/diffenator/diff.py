@@ -13,69 +13,6 @@
 # limitations under the License.
 """
 Module to diff fonts.
-
-Each diff is made in the following manner.
-
-For each diff category:
-- Dump category info for each font into a table.
-- For every row in each table, make a key from selected columns
-- Find matching keys between the two tables
-- Use set operations to find new, missing and modified rows and store
-  them as new tables.
-
-
-Table structure:
-A table is simply a list of dicts which represent each row. For this doc,
-we'll use the following example:
-
-
-font_a =
-[
-    {"glyph" "x", "base_x": 20, "base_y": 40},
-    {"glyph" "y", "base_x": 35, "base_y": 40},
-    {"glyph" "z", "base_x": 20, "base_y": 40},
-]
-
-font_b =
-[
-    {"glyph" "x", "base_x": 30, "base_y": 40},
-    {"glyph" "y", "base_x": 35, "base_y": 40},
-]
-
-Making a key:
-In the above tables, we can produce a keys:
-
-anchors_a_h = {r['glyph']: r for r in table}
-
-{"x" {"glyph" "x", "base_x": 20, "base_y": 40}}
-...
-
-We could even make a key by using coords
-
-anchors_a_h = {(r["base_x"], r["base_y"]): r for r in table)}
-
-{(20, 40): {"glyph" "x", "base_x": 20, "base_y": 40}}
-
-
-This step is similiar to Excel's ability to sort by columns. Once
-we have keys for each row, we can now use set opertions to find new,
-missing and modified rows. These are then returned as 3 new tables
-
-If we diff our example, we'd get the following results:
-
-missing =
-[
-    {"glyph" "z", "base_x": 20, "base_y": 40}
-]
-
-modified =
-font_b =
-[
-    {"glyph" "x", "diff_x": 10, "diff_y": 0},
-]
-
-new =
-[]
 """
 from __future__ import print_function
 import collections
@@ -84,11 +21,13 @@ from diffenator import DiffTable
 import functools
 import os
 import time
+import logging
 
+__all__ = ['DiffFonts', 'diff_metrics', 'diff_kerning',
+            'diff_marks', 'diff_mkmks', 'diff_attribs', 'diff_glyphs']
 
-__all__ = ['diff_fonts', 'diff_metrics', 'diff_kerning',
-           'diff_marks', 'diff_attribs', 'diff_glyphs']
-
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 def timer(method):
     def timed(*args, **kw):
@@ -99,7 +38,7 @@ def timer(method):
             name = kw.get('log_name', method.__name__.upper())
             kw['log_time'][name] = int((te - ts) * 1000)
         else:
-            print('%r  %2.2f ms' % \
+            logger.info('%r  %2.2f ms' % \
                   (method.__name__, (te - ts) * 1000))
         return result
     return timed
@@ -107,27 +46,34 @@ def timer(method):
 
 class DiffFonts:
     settings = dict(
-            glyphs_thresh=0.011,
+        glyphs_thresh=0.011,
         marks_thresh=5,
         mkmks_thresh=5,
         metrics_thresh=2,
         kerns_thresh=0,
+        to_diff=set(["*"]),
     )
-    def __init__(self, font_a, font_b, settings=None, lazy=False):
+    def __init__(self, font_a, font_b, settings=None):
         self._font_a = font_a
         self._font_b = font_b
         self._data = collections.defaultdict(dict)
         if settings:
-            self.settings = settings
+            self._settings = settings
 
-        if not lazy:
+        if {"names", "*"} >= self._settings["to_diff"]:
             self.names()
+        if {"attribs", "*"} >= self._settings["to_diff"]:
             self.attribs()
-            self.glyphs()
-            self.kerns()
-            self.metrics()
-            self.marks()
-            self.mkmks()
+        if {"glyphs", "*"} >= self._settings["to_diff"]:
+            self.glyphs(self._settings["glyphs_thresh"])
+        if {"kerns", "*"} >= self._settings["to_diff"]:
+            self.kerns(self._settings["kerns_thresh"])
+        if {"metrics", "*"} >= self._settings["to_diff"]:
+            self.metrics(self._settings["metrics_thresh"])
+        if {"marks", "*"} >= self._settings["to_diff"]:
+            self.marks(self._settings["marks_thresh"])
+        if {"mkmks", "*"} >= self._settings["to_diff"]:
+            self.mkmks(self._settings["mkmks_thresh"])
 
     def to_dict(self):
         serialised_data = self._serialise()
@@ -231,17 +177,12 @@ def diff_nametable(font_a, font_b):
 
     Parameters
     ----------
-    font_a: InputFont
-    font_b: InputFont
+    font_a: DFont
+    font_b: DFont
 
     Returns
     -------
-    dict
-        {
-            "new": diff_table,
-            "missing": [diff_table],
-            "modified": [diff_table]
-        }
+    DiffTable
     """
     nametable_a = font_a.names
     nametable_b = font_b.names
@@ -288,13 +229,13 @@ def _modified_names(names_a, names_b):
 def diff_glyphs(font_a, font_b, thresh=0.00, scale_upms=True, render_diffs=False):
     """Find glyph differences between two fonts.
 
-    Rows are matched by glyph kkey, which consists of
+    Rows are matched by glyph key, which consists of
     the glyph's characters and OT features.
 
     Parameters
     ----------
-    font_a: InputFont
-    font_b: InputFont
+    font_a: DFont
+    font_b: DFont
     thresh: Ignore differences below this value
     scale_upms:
         Scale values in relation to the font's upms. See readme
@@ -309,16 +250,16 @@ def diff_glyphs(font_a, font_b, thresh=0.00, scale_upms=True, render_diffs=False
     -------
     dict
         {
-            "new": [diff_table],
-            "missing": [diff_table],
-            "modified": [diff_table]
+            "new": DiffTable,
+            "missing": DiffTable,
+            "modified": DiffTable
         }
     """
     glyphs_a = font_a.glyphs
     glyphs_b = font_b.glyphs
 
-    glyphs_a_h = {r['glyph'].kkey: r for r in glyphs_a}
-    glyphs_b_h = {r['glyph'].kkey: r for r in glyphs_b}
+    glyphs_a_h = {r['glyph'].key: r for r in glyphs_a}
+    glyphs_b_h = {r['glyph'].key: r for r in glyphs_b}
 
     missing = _subtract_items(glyphs_a_h, glyphs_b_h)
     new = _subtract_items(glyphs_b_h, glyphs_a_h)
@@ -346,7 +287,7 @@ def diff_glyphs(font_a, font_b, thresh=0.00, scale_upms=True, render_diffs=False
 def _modified_glyphs(glyphs_a, glyphs_b, thresh=0.00,
                      upm_a=None, upm_b=None, scale_upms=False, render_diffs=False):
     if render_diffs:
-        print('Rendering glyph differences. Be patient')
+        logger.info('Rendering glyph differences. Be patient')
     shared = set(glyphs_a.keys()) & set(glyphs_b.keys())
 
     table = []
@@ -430,15 +371,15 @@ def diff_kerning(font_a, font_b, thresh=2, scale_upms=True):
 
     Class kerns are flattened and then tested for differences.
 
-    Rows are matched by the left and right glyph kkeys.
+    Rows are matched by the left and right glyph keys.
 
     Some fonts use a kern table instead of gpos kerns, test these
     if no gpos kerns exist. This problem exists in Open Sans v1.
 
     Parameters
     ----------
-    font_a: InputFont
-    font_b: InputFont
+    font_a: DFont
+    font_b: DFont
     thresh: Ignore differences below this value
     scale_upms:
         Scale values in relation to the font's upms. See readme
@@ -459,13 +400,13 @@ def diff_kerning(font_a, font_b, thresh=2, scale_upms=True):
     upm_a = font_a._ttfont['head'].unitsPerEm
     upm_b = font_b._ttfont['head'].unitsPerEm
 
-    charset_a = set([font_a.input_map[g].kkey for g in font_a.input_map])
-    charset_b = set([font_b.input_map[g].kkey for g in font_b.input_map])
+    charset_a = set([font_a.glyph(g).key for g in font_a.glyphset])
+    charset_b = set([font_b.glyph(g).key for g in font_b.glyphset])
 
-    kern_a_h = {i['left'].kkey + i['right'].kkey: i for i in kern_a
-                if i['left'].kkey in charset_b and i['right'].kkey in charset_b}
-    kern_b_h = {i['left'].kkey + i['right'].kkey: i for i in kern_b
-                if i['left'].kkey in charset_b and i['right'].kkey in charset_a}
+    kern_a_h = {i['left'].key + i['right'].key: i for i in kern_a
+                if i['left'].key in charset_b and i['right'].key in charset_b}
+    kern_b_h = {i['left'].key + i['right'].key: i for i in kern_b
+                if i['left'].key in charset_b and i['right'].key in charset_a}
 
     missing = _subtract_items(kern_a_h, kern_b_h)
     missing = [i for i in missing if abs(i["value"]) >= 1]
@@ -514,13 +455,13 @@ def _modified_kerns(kern_a, kern_b, thresh=2,
 def diff_metrics(font_a, font_b, thresh=1, scale_upms=True):
     """Find metrics differences between two fonts.
 
-    Rows are matched by each using glyph kkey, which consists of
+    Rows are matched by each using glyph key, which consists of
     the glyph's characters and OT features.
 
     Parameters
     ----------
-    font_a: InputFont
-    font_b: InputFont
+    font_a: DFont
+    font_b: DFont
     thresh:
         Ignore modified metrics under this value
     scale_upms:
@@ -542,8 +483,8 @@ def diff_metrics(font_a, font_b, thresh=1, scale_upms=True):
     upm_a = font_a._ttfont['head'].unitsPerEm
     upm_b = font_b._ttfont['head'].unitsPerEm
 
-    metrics_a_h = {i['glyph'].kkey: i for i in metrics_a}
-    metrics_b_h = {i['glyph'].kkey: i for i in metrics_b}
+    metrics_a_h = {i['glyph'].key: i for i in metrics_a}
+    metrics_b_h = {i['glyph'].key: i for i in metrics_b}
 
     modified = _modified_metrics(metrics_a_h, metrics_b_h, thresh,
                                  upm_a, upm_b, scale_upms)
@@ -584,8 +525,8 @@ def diff_attribs(font_a, font_b, scale_upm=True):
 
     Parameters
     ----------
-    font_a: InputFont
-    font_b: InputFont
+    font_a: DFont
+    font_b: DFont
     scale_upms:
         Scale values in relation to the font's upms. See readme
         for example.
@@ -664,12 +605,12 @@ def diff_marks(font_a, font_b, marks_a, marks_b,
 
     Marks are flattened first.
 
-    Rows are matched by each base glyph's + mark glyph's kkey
+    Rows are matched by each base glyph's + mark glyph's key
 
     Parameters
     ----------
-    font_a: InputFont
-    font_b: InputFont
+    font_a: DFont
+    font_b: DFont
     marks_a: diff_table
     marks_b: diff_table
     thresh: Ignore differences below this value
@@ -689,13 +630,13 @@ def diff_marks(font_a, font_b, marks_a, marks_b,
     upm_a = font_a._ttfont['head'].unitsPerEm
     upm_b = font_b._ttfont['head'].unitsPerEm
 
-    charset_a = set([font_a.input_map[g].kkey for g in font_a.input_map])
-    charset_b = set([font_b.input_map[g].kkey for g in font_b.input_map])
+    charset_a = set([font_a.glyph(g).key for g in font_a.glyphset])
+    charset_b = set([font_b.glyph(g).key for g in font_b.glyphset])
 
-    marks_a_h = {i['base_glyph'].kkey+i['mark_glyph'].kkey: i for i in marks_a
-                 if i['base_glyph'].kkey in charset_b and i['mark_glyph'].kkey in charset_b}
-    marks_b_h = {i['base_glyph'].kkey+i['mark_glyph'].kkey: i for i in marks_b
-                 if i['base_glyph'].kkey in charset_a and i['mark_glyph'].kkey in charset_a}
+    marks_a_h = {i['base_glyph'].key+i['mark_glyph'].key: i for i in marks_a
+                 if i['base_glyph'].key in charset_b and i['mark_glyph'].key in charset_b}
+    marks_b_h = {i['base_glyph'].key+i['mark_glyph'].key: i for i in marks_b
+                 if i['base_glyph'].key in charset_a and i['mark_glyph'].key in charset_a}
 
     missing = _subtract_items(marks_a_h, marks_b_h)
     new = _subtract_items(marks_b_h, marks_a_h)

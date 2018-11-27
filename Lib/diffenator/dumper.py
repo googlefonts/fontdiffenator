@@ -2,9 +2,9 @@
 Dumper
 ~~~~~~
 
-Dump a font category.
+Dump a font table.
 
-Categories which can be dumped are attribs, metrics, kerns, glyphs, names
+Tables which can be dumped are attribs, metrics, kerns, glyphs, names
 marks and mkmks.
 
 Examples
@@ -38,7 +38,7 @@ def main():
     parser.add_argument('-i', '--vf-instance',
                         help='Variable font instance to diff')
     parser.add_argument('-r', '--render-path',
-            help="Path to generate png to")
+                        help="Path to generate png to")
     args = parser.parse_args()
 
     font = DFont(args.font)

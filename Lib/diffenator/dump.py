@@ -186,7 +186,6 @@ def dump_attribs(font):
                     logger.info("{} Missing attrib {}".format(table_tag, attr))
     attribs.report_columns(["table", "attrib", "value"])
     return attribs
-"""Dump a font's glyf table"""
 
 
 def glyph_area(glyphset, glyph):
@@ -217,35 +216,17 @@ def dump_glyphs(font):
     """
     glyphset = font._ttfont.getGlyphSet()
     table = DFontTableIMG(font, "glyphs", renderable=True)
-    for name, glyph in sorted(font.input_map.items()):
+    for name, glyph in sorted(font.glyphset.items()):
         table.append({
             "glyph": glyph,
             "area": glyph_area(glyphset, name),
             "string": glyph.characters,
-            'features': u', '.join(font.input_map[name].features)
+            'features': glyph.features,
+            'htmlfeatures': u', '.join(glyph.features)
         })
     table.report_columns(["glyph", "area", "string"])
     table.sort(key=lambda k: k["glyph"].characters)
     return table
-
-"""Functions to produce font metrics.
-
-Caveat, the rsb implementation is only accurate when curve points are
-on the extrema"""
-
-
-def glyph_metrics(font, glyph):
-    lsb = _glyph_lsb(font._ttfont, glyph)
-    rsb = _glyph_rsb(font._ttfont, glyph)
-    adv = _glyph_adv_width(font._ttfont, glyph)
-    return {'glyph': font.input_map[glyph],
-            'lsb': lsb, 'rsb': rsb, 'adv': adv,
-            'string': font.input_map[glyph].characters,
-            'description': u'{} | {}'.format(
-                font.input_map[glyph].name,
-                font.input_map[glyph].features
-            ),
-            'features': u', '.join(font.input_map[glyph].features)}
 
 
 def dump_glyph_metrics(font):
@@ -267,46 +248,26 @@ def dump_glyph_metrics(font):
             ...
         ]
     """
-    glyphs = font._ttfont.getGlyphSet().keys()
     table = DFontTableIMG(font, "metrics", renderable=True)
 
-    for glyph in glyphs:
-        table.append(glyph_metrics(font, glyph))
+    for name, glyph in font.glyphset.items():
+        adv = font._ttfont["hmtx"][name][0]
+        try:
+            lsb = font._ttfont["glyf"][name].xMin
+            rsb = adv - font._ttfont['glyf'][name].xMax
+        except AttributeError:
+            lsb = 0
+            rsb = 0
+        table.append({'glyph': glyph,
+                'lsb': lsb, 'rsb': rsb, 'adv': adv,
+                'string': glyph.characters,
+                'description': u'{} | {}'.format(
+                    glyph.name, glyph.features
+                ),
+                'features': glyph.features,
+                'htmlfeatures': u', '.join(glyph.features)})
     table.report_columns(["glyph", "rsb", "lsb", "adv"])
     return table
-
-
-def _glyph_adv_width(font, glyph):
-    return font['hmtx'][glyph][0]
-
-
-def _glyph_lsb(font, glyph):
-    """Get the left side bearing for a glyph.
-    If the Xmin attribute does not exist, the font is zero width so
-    return 0"""
-    try:
-        return font['glyf'][glyph].xMin
-    except AttributeError:
-        return 0
-
-
-def _glyph_rsb(font, glyph):
-    """Get the right side bearing for a glyph.
-    If the Xmax attribute does not exist, the font is zero width so
-    return 0"""
-    glyph_width = font['hmtx'].metrics[glyph][0]
-    try:
-        return glyph_width - font['glyf'][glyph].xMax
-    except AttributeError:
-        return 0
-"""Dump a font's kerning.
-
-TODO (Marc Foley) Flattening produced too much output. Perhaps it's better
-to keep the classes and map each class to a single glyph?
-
-Perhaps it would be better to combine our efforts and help improve
-https://github.com/adobe-type-tools/kern-dump which has similar
-functionality?"""
 
 
 def _kerning_lookup_indexes(font):
@@ -408,6 +369,14 @@ def dump_kerning(font):
 
 
 def _dump_gpos_kerning(font):
+    """Dump a font's GPOS kerning.
+
+    TODO (Marc Foley) Flattening produced too much output. Perhaps it's better
+    to keep the classes and map each class to a single glyph?
+
+    Perhaps it would be better to combine our efforts and help improve
+    https://github.com/adobe-type-tools/kern-dump which has similar
+    functionality?"""
     if 'GPOS' not in font._ttfont:
         logger.warning("Font doesn't have GPOS table. No kerns found")
         return []
@@ -434,19 +403,21 @@ def _dump_gpos_kerning(font):
 
     _kern_table = DFontTableIMG(font, "kerning", renderable=True)
     for left, right, val in kern_table:
+        left = font.glyph(left)
+        right = font.glyph(right)
         _kern_table.append({
-            'left': font.input_map[left],
-            'right': font.input_map[right],
+            'left': left,
+            'right': right,
             'value': val,
-            'string': font.input_map[left].characters + \
-                      font.input_map[right].characters,
+            'string': left.characters + right.characters,
             'description': u'{}+{} | {}'.format(
-                font.input_map[left].name,
-                font.input_map[right].name,
-                font.input_map[left].features),
-            'features': u'{}, {}'.format(
-                ', '.join(font.input_map[left].features),
-                ', '.join(font.input_map[right].features))
+                left.name,
+                right.name,
+                left.features),
+            "features": left.features + right.features,
+            'htmlfeatures': u'{}, {}'.format(
+                ', '.join(left.features),
+                ', '.join(right.features))
         })
     _kern_table.report_columns(["left", "right", "string", "value"])
     return _kern_table
@@ -461,19 +432,21 @@ def _dump_table_kerning(font):
     logger.warn('Font contains kern table. Newer fonts are GPOS only')
     for table in font._ttfont['kern'].kernTables:
         for kern in table.kernTable:
+            left = font.glyph(kern[0])
+            right = font.glyph(kern[1])
             kerns.append({
-                'left': font.input_map[kern[0]],
-                'right': font.input_map[kern[1]],
+                'left': left,
+                'right': right,
                 'value': table.kernTable[kern],
-                'string': font.input_map[kern[0]].characters + \
-                          font.input_map[kern[1]].characters,
+                'string': left.characters + right.characters,
                 'description': u'{}+{} | {}'.format(
-                    font.input_map[kern[0]].name,
-                    font.input_map[kern[1]].name,
-                    font.input_map[kern[0]].features),
-                'features': u'{}, {}'.format(
-                    ', '.join(font.input_map[kern[0]].features),
-                    ', '.join(font.input_map[kern[1]].features)
+                    left.name,
+                    right.name,
+                    left.features),
+                'features': left.features + right.features,
+                'htmlfeatures': u'{}, {}'.format(
+                    ', '.join(left.features),
+                    ', '.join(right.features)
                 )
             })
     return kerns
@@ -582,7 +555,7 @@ class DumpAnchors:
                     _anchors[idx] = []
                 _anchors[idx].append({
                     'class': idx,
-                    'glyph': self._font.input_map[glyph],
+                    'glyph': self._font.glyph(glyph),
                     'x': anchor.XCoordinate,
                     'y': anchor.YCoordinate
                 })
@@ -602,7 +575,7 @@ class DumpAnchors:
             if anchor.Class not in _anchors:
                 _anchors[anchor.Class] = []
             _anchors[anchor.Class].append({
-                'glyph': self._font.input_map[glyph],
+                'glyph': self._font.glyph(glyph),
                 'class': anchor.Class,
                 'x': anchor.MarkAnchor.XCoordinate,
                 'y': anchor.MarkAnchor.YCoordinate
@@ -641,13 +614,16 @@ class DumpAnchors:
                             'mark_glyph': anchor2['glyph'],
                             'mark_x': anchor2['x'],
                             'mark_y': anchor2['y'],
-                            'string': anchor['glyph'].characters + anchor2['glyph'].characters,
+                            'string': anchor['glyph'].characters + \
+                                      anchor2['glyph'].characters,
                             'description': u'{} + {} | {}'.format(
                                 anchor['glyph'].name,
                                 anchor2['glyph'].name,
                                 anchor['glyph'].features
                             ),
-                            'features': u'{}, {}'.format(
+                            'features': anchor['glyph'].features + \
+                                        anchor['glyph'].features,
+                            'htmlfeatures': u'{}, {}'.format(
                                 ', '.join(anchor['glyph'].features),
                                 ', '.join(anchor2['glyph'].features)
                             )

@@ -1,5 +1,4 @@
 __version__ = "0.5.1"
-
 import sys
 if sys.version_info[0] < 3 and sys.version_info[1] < 6:
     raise ImportError("Visualize module requires Python3.6+!")
@@ -9,7 +8,14 @@ from ctypes import cast, memmove, CDLL, c_void_p, c_int
 from sys import byteorder
 import freetype
 from freetype.raw import *
-from freetype import FT_PIXEL_MODE_MONO, FT_PIXEL_MODE_GRAY, FT_Pointer, FT_Bitmap, FT_Fixed, FT_Set_Var_Design_Coordinates
+from freetype import (
+        FT_PIXEL_MODE_MONO,
+        FT_PIXEL_MODE_GRAY,
+        FT_Pointer,
+        FT_Bitmap,
+        FT_Fixed,
+        FT_Set_Var_Design_Coordinates
+)
 from cairo import Context, ImageSurface, FORMAT_A8, FORMAT_ARGB32
 import uharfbuzz as hb
 import os
@@ -49,6 +55,7 @@ class Tbl:
             self._report_columns = item.keys()
 
     def report_columns(self, items):
+        """Columns to display in report"""
         self._report_columns = items
 
     @property

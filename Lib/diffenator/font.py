@@ -30,7 +30,7 @@ class DFont(TTFont):
     a glyph. This object will be deprecated once otLib progresses"""
     def __init__(self, file=None, lazy=False):
         self._ttfont = TTFont(file)
-        self._input_map = self._gen_inputs() if file else []
+        self._glyphset = self._gen_inputs() if file else []
         self._axis_locations = None
         self._axis_order = None
         self._path = file
@@ -46,8 +46,11 @@ class DFont(TTFont):
         return self._path
 
     @property
-    def input_map(self):
-        return self._input_map
+    def glyphset(self):
+        return self._glyphset
+
+    def glyph(self, name):
+        return self._glyphset[name]
 
     @property
     def axis_order(self):
@@ -160,7 +163,8 @@ class InputGenerator(HbInputGenerator):
                     Glyph(name, features, unicode(characters), self.font)
                 )
             else:
-                inputs.append(Glyph(name, '', '', self.font))
+                features = ('',)
+                inputs.append(Glyph(name, features, '', self.font))
         return inputs
 
     def input_from_name(self, name, seen=None, pad=False):
@@ -224,7 +228,7 @@ class Glyph:
         self.features = features
         self.characters = characters
         self.combining = True if characters and uni.combining(characters[0]) else False
-        self.kkey = self.characters + ''.join(features)
+        self.key = self.characters + ''.join(features)
         self.font = font
 
     def __repr__(self):

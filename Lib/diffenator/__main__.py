@@ -37,8 +37,8 @@ diffenator /path/to/font_a.ttf /path/to/font_b.ttf -md
 Diff kerning and ignore differences under 30 units:
 diffenator /path/to/font_a.ttf /path/to/font_b.ttf -td kerns --kerns_thresh 30
 
-Diff rendered glyphs:
-diffenator /path/to/font_a.ttf /path/to/font_b.ttf -td glyphs -rd
+Output images:
+diffenator /path/to/font_a.ttf /path/to/font_b.ttf -r /path/to/img_dir
 """
 from argparse import RawTextHelpFormatter
 from diffenator import CHOICES, __version__
@@ -91,6 +91,7 @@ def main():
             kerns_thresh=args.kerns_thresh,
             glyphs_thresh=args.glyphs_thresh,
             metrics_thresh=args.metrics_thresh,
+            to_diff=set(args.to_diff),
     )
     font_a = DFont(args.font_a)
     font_b = DFont(args.font_b)
