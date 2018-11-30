@@ -278,20 +278,17 @@ class DiffTable(Tbl):
         self._font_b = font_b
 
     def to_gif(self, dst):
-        with tempfile.NamedTemporaryFile() as img_a_path, \
-             tempfile.NamedTemporaryFile() as img_b_path:
 
-            img_a = self._to_png(self._font_a, "Before", img_a_path)
-            img_b = self._to_png(self._font_b, "After", img_b_path)
+        img_a = self._to_png(self._font_a, "Before")
+        img_b = self._to_png(self._font_b, "After")
 
-            with Image.open(img_a_path) as img_a, Image.open(img_b_path) as img_b:
-                img_a.save(
-                    dst,
-                    save_all=True,
-                    append_images=[img_b],
-                    loop=10000,
-                    duration=1000
-                )
+        img_a.save(
+            dst,
+            save_all=True,
+            append_images=[img_b],
+            loop=10000,
+            duration=1000
+        )
 
 class DFontTable(Tbl):
 
