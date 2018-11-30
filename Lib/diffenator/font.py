@@ -13,6 +13,18 @@ from diffenator.dump import (
         dump_attribs,
         dump_nametable
 )
+from copy import copy
+import uharfbuzz as hb
+import freetype
+from freetype.raw import *
+from freetype import (
+        FT_PIXEL_MODE_MONO,
+        FT_PIXEL_MODE_GRAY,
+        FT_Pointer,
+        FT_Bitmap,
+        FT_Fixed,
+        FT_Set_Var_Design_Coordinates
+)
 import sys
 try:
     # try and import unicodedata2 backport for py2.7.
@@ -26,20 +38,45 @@ if sys.version_info.major == 3:
 
 
 class DFont(TTFont):
-    """Wrapper for TTFont object which contains an input map to generate
-    a glyph. This object will be deprecated once otLib progresses"""
-    def __init__(self, file=None, lazy=False):
-        self._ttfont = TTFont(file)
-        self._glyphset = self._gen_inputs() if file else []
-        self._axis_locations = None
+    """Wrapper for ttfont, freetype and hb fonts"""
+    def __init__(self, path=None, lazy=False, size=1500):
+        self._path = path
+        self._ttfont = TTFont(self._path)
+        self._src = TTFont(copy(self._path))
+        self._glyphset = self._gen_inputs() if self._path else []
+        self._instance_coordinates = self._get_dflt_instance_coordinates()
         self._axis_order = None
-        self._path = file
-        self._src = self._ttfont
+        self._instances_coordinates = self._get_instances_coordinates()
         self._glyphs = self._marks = self._mkmks = self._kerns = \
             self._glyph_metrics = self._names = self._attribs = None
 
+
+        self._ft_font = freetype.Face(self._path)
+        self._slot = self._ft_font.glyph
+
+        self.size = size
+        self._ft_font.set_char_size(self.size)
+
+        # HB font
+        with open(self._path, 'rb') as fontfile:
+            self._fontdata = fontfile.read()
+        self._hb_face = hb.Face.create(self._fontdata)
+        self._hb_font = hb.Font.create(self._hb_face)
+
+        self._hb_font.scale = (self.size, self.size)
+
         if not lazy:
             self.recalc_tables()
+
+    def _get_instances_coordinates(self):
+        if self.is_variable:
+            return [i.coordinates for i in self._src["fvar"].instances]
+        return None
+
+    def _get_dflt_instance_coordinates(self):
+        if self.is_variable:
+            return {i.axisTag: i.defaultValue for i in self._src['fvar'].axes}
+        return None
 
     @property
     def path(self):
@@ -57,8 +94,12 @@ class DFont(TTFont):
         return self._axis_order
 
     @property
-    def axis_locations(self):
-        return self._axis_locations
+    def instances_coordinates(self):
+        return self._instances_coordinates
+
+    @property
+    def instance_coordinates(self):
+        return self._instance_coordinates
 
     def _gen_inputs(self):
         if not 'cmap' in self._ttfont.keys():
@@ -77,17 +118,29 @@ class DFont(TTFont):
 
     def set_variations(self, axes):
         """Instantiate a ttfont VF with axes vals"""
+        from copy import copy
         if self.is_variable:
-            self._ttfont = instantiateVariableFont(self._src, axes, inplace=False)
+            font = instantiateVariableFont(self._src, axes, inplace=False)
+            self._ttfont = copy(font)
             self._axis_order = [a.axisTag for a in self._src['fvar'].axes]
-            self._axis_locations = {a.axisTag: a.defaultValue for a in
+            self._instance_coordinates = {a.axisTag: a.defaultValue for a in
                                     self._src['fvar'].axes}
             for axis in axes:
-                if axis in self._axis_locations:
-                    self._axis_locations[axis] = axes[axis]
+                if axis in self._instance_coordinates:
+                    self._instance_coordinates[axis] = axes[axis]
                 else:
                     print("font has no axis called {}".format(axis))
             self.recalc_tables()
+
+            coords = []
+            for name in self.axis_order:
+                coord = FT_Fixed(int(self.instance_coordinates[name]) << 16)
+                coords.append(coord)
+            ft_coords = (FT_Fixed * len(coords))(*coords)
+            FT_Set_Var_Design_Coordinates(self._ft_font._FT_Face, len(ft_coords), ft_coords)
+            self._hb_face = hb.Face.create(self._fontdata)
+            self._hb_font = hb.Font.create(self._hb_face)
+            self._hb_font.set_variations(self.instance_coordinates)
         else:
             print("Not vf")
 

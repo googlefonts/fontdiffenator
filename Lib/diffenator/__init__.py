@@ -6,17 +6,8 @@ from array import array
 from PIL import Image
 from ctypes import cast, memmove, CDLL, c_void_p, c_int
 from sys import byteorder
-import freetype
-from freetype.raw import *
-from freetype import (
-        FT_PIXEL_MODE_MONO,
-        FT_PIXEL_MODE_GRAY,
-        FT_Pointer,
-        FT_Bitmap,
-        FT_Fixed,
-        FT_Set_Var_Design_Coordinates
-)
 from cairo import Context, ImageSurface, FORMAT_A8, FORMAT_ARGB32
+from freetype.raw import *
 import uharfbuzz as hb
 import os
 import shutil
@@ -134,21 +125,8 @@ class Tbl:
         dst: str
             Path to output image. If no path is given, return in-memory 
         """
-        ft_font = freetype.Face(font.path)
-        slot = ft_font.glyph
-
-        upm_size = size
-
-        tab = int(size / 25)
+        tab = int(font.size / 25)
         width, height = 1024, 200
-        if font.is_variable:
-            coords = []
-            for name in font.axis_order:
-                coord = FT_Fixed(int(font.axis_locations[name]) << 16)
-                coords.append(coord)
-            ft_coords = (FT_Fixed * len(coords))(*coords)
-            FT_Set_Var_Design_Coordinates(ft_font._FT_Face, len(ft_coords), ft_coords)
-        ft_font.set_char_size(upm_size)
 
         # Compute height of image
         x, y, baseline = 20, 0, 0
@@ -184,29 +162,20 @@ class Tbl:
                 len(self._data), limit)
             )
 
-        # HB font
-        hb_face = hb.Face.create(open(font.path, 'rb').read())
-        hb_font = hb.Font.create(hb_face)
-        hb_upem = upm_size
-
-        hb_font.scale = (hb_upem, hb_upem)
-        if font.is_variable:
-            hb_font.set_variations(font.axis_locations)
-        hb.ot_font_set_funcs(hb_font)
+        hb.ot_font_set_funcs(font._hb_font)
 
         # Draw glyphs
         x, y, baseline = 20, 200, 0
         x_pos = 20
         y_pos = 200
         for row in self._data[:limit]:
-
             buf = hb.Buffer.create()
             buf.add_str(row['string'])
 
             buf.guess_segment_properties()
             try:
                 features = {f: True for f in row['features']}
-                hb.shape(hb_font, buf, features)
+                hb.shape(font._hb_font, buf, features)
             except KeyError:
                 hb.shape(hb_font, buf)
 
@@ -214,15 +183,15 @@ class Tbl:
             char_pos = buf.glyph_positions
             for info, pos in zip(char_info, char_pos):
                 gid = info.codepoint            
-                ft_font.load_glyph(gid, flags=6)
-                bitmap = slot.bitmap
+                font._ft_font.load_glyph(gid, flags=6)
+                bitmap = font._slot.bitmap
 
                 if bitmap.width > 0:
                     ctx.set_source_rgb(0, 0, 0)
-                    glyph_surface = _make_image_surface(ft_font.glyph.bitmap, copy=False)
+                    glyph_surface = _make_image_surface(font._ft_font.glyph.bitmap, copy=False)
                     ctx.set_source_surface(glyph_surface,
-                                           x_pos + slot.bitmap_left + (pos.x_offset / 64.),
-                                           y_pos - slot.bitmap_top - (pos.y_offset / 64.))
+                                           x_pos + font._slot.bitmap_left + (pos.x_offset / 64.),
+                                           y_pos - font._slot.bitmap_top - (pos.y_offset / 64.))
                     glyph_surface.flush()
                     ctx.paint()
                 x_pos += (pos.x_advance) / 64.
@@ -335,7 +304,7 @@ class DFontTableIMG(DFontTable):
 
     def to_png(self, dst=None, limit=800):
         font = self._font
-        return self._to_png(font, dst, limit=limit)
+        return self._to_png(font, dst=dst, limit=limit)
 
 
 class Formatter:
