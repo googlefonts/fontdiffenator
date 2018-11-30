@@ -45,11 +45,11 @@ def timer(method):
 
 
 class DiffFonts:
-    settings = dict(
-        glyphs_thresh=0.011,
-        marks_thresh=5,
-        mkmks_thresh=5,
-        metrics_thresh=2,
+    _settings = dict(
+        glyphs_thresh=0,
+        marks_thresh=0,
+        mkmks_thresh=0,
+        metrics_thresh=0,
         kerns_thresh=0,
         to_diff=set(["*"]),
     )
@@ -58,7 +58,8 @@ class DiffFonts:
         self._font_b = font_b
         self._data = collections.defaultdict(dict)
         if settings:
-            self._settings = settings
+            for key in settings:
+                self._settings[key] = settings[key]
 
         if {"names", "*"} >= self._settings["to_diff"]:
             self.names()
@@ -128,7 +129,7 @@ class DiffFonts:
         """Serialiser for container data"""
         pass
 
-    def marks(self, threshold=settings["marks_thresh"]):
+    def marks(self, threshold=_settings["marks_thresh"]):
         self._data["marks"] = diff_marks(
                 self._font_a, self._font_b,
                 self._font_a.marks, self._font_b.marks,
@@ -136,7 +137,7 @@ class DiffFonts:
                 thresh=threshold
         )
 
-    def mkmks(self, threshold=settings["mkmks_thresh"]):
+    def mkmks(self, threshold=_settings["mkmks_thresh"]):
         self._data["mkmks"] = diff_marks(
             self._font_a, self._font_b,
             self._font_a.mkmks, self._font_b.mkmks,
@@ -144,16 +145,16 @@ class DiffFonts:
             thresh=threshold
         )
 
-    def metrics(self, threshold=settings["metrics_thresh"]):
+    def metrics(self, threshold=_settings["metrics_thresh"]):
         self._data["metrics"] = diff_metrics(self._font_a, self._font_b,
                 thresh=threshold)
 
-    def glyphs(self, threshold=settings["glyphs_thresh"],
+    def glyphs(self, threshold=_settings["glyphs_thresh"],
                render_diffs=False):
         self._data["glyphs"] = diff_glyphs(self._font_a, self._font_b,
             thresh=threshold, render_diffs=render_diffs)
 
-    def kerns(self, threshold=settings["kerns_thresh"]):
+    def kerns(self, threshold=_settings["kerns_thresh"]):
         self._data["kerns"] = diff_kerning(self._font_a, self._font_b,
             thresh=threshold)
 
@@ -696,3 +697,4 @@ def _modified_marks(marks_a, marks_b, thresh=4,
                 mark.pop(pos)
             table.append(mark)
     return table
+
