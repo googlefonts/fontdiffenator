@@ -311,7 +311,7 @@ def _modified_glyphs(glyphs_a, glyphs_b, thresh=0.00,
             diff = diff_area(area_a, area_b)
         if diff > thresh:
             glyph = glyphs_a[k]
-            glyph['diff'] = diff
+            glyph['diff'] = round(diff, 4)
             table.append(glyph)
     return table
 
