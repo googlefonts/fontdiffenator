@@ -94,37 +94,32 @@ class DiffFonts:
                 filename = _table.table_name.replace(" ", "_") + ".gif"
                 img_path = os.path.join(dst, filename)
                 _table.to_gif(img_path)
-                
+
+    def _to_report(self, limit=50, dst=None, r_type="txt"):
+        """Output before and after report"""
+        report = []
+        for table in self._data:
+            for subtable in self._data[table]:
+                _table = self._data[table][subtable]
+                if len(_table) < 1:
+                    continue
+                if r_type == "txt":
+                    report.append(_table.to_txt(limit=limit))
+                elif r_type == "md":
+                    report.append(_table.to_md(limit=limit))
+        if dst:
+            with open(dst, 'w') as doc:
+                doc.write("\n\n".join(report))
+        else:
+            return "\n\n".join(report)
 
     def to_txt(self, limit=50, dst=None):
-        """Output before and after report as .txt doc"""
-        report = []
-        for table in self._data:
-            for subtable in self._data[table]:
-                _table = self._data[table][subtable]
-                if len(_table) < 1:
-                    continue
-                report.append(_table.to_txt(limit=limit))
-        if dst:
-            with open(dst, 'w') as doc:
-                doc.write("\n\n".join(report))
-        else:
-            return "\n\n".join(report)
+        """Output diff report as txt"""
+        return self._to_report(limit=limit, dst=dst, r_type="txt")
 
     def to_md(self, limit=50, dst=None):
-        """output before and after report as .md doc"""
-        report = []
-        for table in self._data:
-            for subtable in self._data[table]:
-                _table = self._data[table][subtable]
-                if len(_table) < 1:
-                    continue
-                report.append(_table.to_md(limit=limit))
-        if dst:
-            with open(dst, 'w') as doc:
-                doc.write("\n\n".join(report))
-        else:
-            return "\n\n".join(report)
+        """Output diff report as md"""
+        return self._to_report(limit=limit, dst=dst, r_type="md")
 
     def _serialise(self):
         """Serialiser for container data"""
