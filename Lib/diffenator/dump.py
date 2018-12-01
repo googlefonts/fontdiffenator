@@ -25,7 +25,7 @@ def dump_nametable(font):
         ]
     """
     table = DFontTable(font, "names")
-    name_table = font._ttfont['name']
+    name_table = font.ttfont['name']
 
     for name in name_table.names:
         table.append({
@@ -173,12 +173,12 @@ def dump_attribs(font):
     attribs = DFontTable(font, "attribs")
     for table_tag, font_table in zip(['OS/2', 'hhea', 'gasp', 'head', 'post'],
                                      [OS2, HHEA, GASP, HEAD, POST]):
-        if table_tag in font._ttfont:
+        if table_tag in font.ttfont:
             for attr, converter in font_table:
                 try:
                     row = {
                         'attrib': attr,
-                        'value': converter(getattr(font._ttfont[table_tag], attr)),
+                        'value': converter(getattr(font.ttfont[table_tag], attr)),
                         'table': table_tag
                     }
                     attribs.append(row)
@@ -214,7 +214,7 @@ def dump_glyphs(font):
             ...
         ]
     """
-    glyphset = font._ttfont.getGlyphSet()
+    glyphset = font.ttfont.getGlyphSet()
     table = DFontTableIMG(font, "glyphs", renderable=True)
     for name, glyph in sorted(font.glyphset.items()):
         table.append({
@@ -251,10 +251,10 @@ def dump_glyph_metrics(font):
     table = DFontTableIMG(font, "metrics", renderable=True)
 
     for name, glyph in font.glyphset.items():
-        adv = font._ttfont["hmtx"][name][0]
+        adv = font.ttfont["hmtx"][name][0]
         try:
-            lsb = font._ttfont["glyf"][name].xMin
-            rsb = adv - font._ttfont['glyf'][name].xMax
+            lsb = font.ttfont["glyf"][name].xMin
+            rsb = adv - font.ttfont['glyf'][name].xMax
         except AttributeError:
             lsb = 0
             rsb = 0
@@ -377,18 +377,18 @@ def _dump_gpos_kerning(font):
     Perhaps it would be better to combine our efforts and help improve
     https://github.com/adobe-type-tools/kern-dump which has similar
     functionality?"""
-    if 'GPOS' not in font._ttfont:
+    if 'GPOS' not in font.ttfont:
         logger.warning("Font doesn't have GPOS table. No kerns found")
         return []
 
-    kerning_lookup_indexes = _kerning_lookup_indexes(font._ttfont)
+    kerning_lookup_indexes = _kerning_lookup_indexes(font.ttfont)
     if not kerning_lookup_indexes:
         logger.warning("Font doesn't have a GPOS kern feature")
         return []
 
     kern_table = []
     for lookup_idx in kerning_lookup_indexes:
-        lookup = font._ttfont['GPOS'].table.LookupList.Lookup[lookup_idx]
+        lookup = font.ttfont['GPOS'].table.LookupList.Lookup[lookup_idx]
 
         for sub_table in lookup.SubTable:
 
@@ -427,10 +427,10 @@ def _dump_table_kerning(font):
     """Some fonts still contain kern tables. Most modern fonts include
     kerning in the GPOS table"""
     kerns = DFontTableIMG(font, "kerns", renderable=True)
-    if not 'kern' in font._ttfont:
+    if not 'kern' in font.ttfont:
         return kerns
     logger.warn('Font contains kern table. Newer fonts are GPOS only')
-    for table in font._ttfont['kern'].kernTables:
+    for table in font.ttfont['kern'].kernTables:
         for kern in table.kernTable:
             left = font.glyph(kern[0])
             right = font.glyph(kern[1])
@@ -456,7 +456,7 @@ class DumpAnchors:
     """Dump a font's mark and mkmks positions"""
     def __init__(self, font):
         self._font = font
-        self._ttfont = font._ttfont
+        self._ttfont = font.ttfont
         self._lookups = self._get_lookups() if 'GPOS' in self._ttfont.keys() else []
 
         self._base = []

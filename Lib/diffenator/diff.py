@@ -400,8 +400,8 @@ def diff_kerning(font_before, font_after, thresh=2, scale_upms=True):
     kern_a = font_before.kerns
     kern_b = font_after.kerns
 
-    upm_a = font_before._ttfont['head'].unitsPerEm
-    upm_b = font_after._ttfont['head'].unitsPerEm
+    upm_a = font_before.ttfont['head'].unitsPerEm
+    upm_b = font_after.ttfont['head'].unitsPerEm
 
     charset_a = set([font_before.glyph(g).key for g in font_before.glyphset])
     charset_b = set([font_after.glyph(g).key for g in font_after.glyphset])
@@ -483,8 +483,8 @@ def diff_metrics(font_before, font_after, thresh=1, scale_upms=True):
     metrics_a = font_before.metrics
     metrics_b = font_after.metrics
 
-    upm_a = font_before._ttfont['head'].unitsPerEm
-    upm_b = font_after._ttfont['head'].unitsPerEm
+    upm_a = font_before.ttfont['head'].unitsPerEm
+    upm_b = font_after.ttfont['head'].unitsPerEm
 
     metrics_a_h = {i['glyph'].key: i for i in metrics_a}
     metrics_b_h = {i['glyph'].key: i for i in metrics_b}
@@ -544,8 +544,8 @@ def diff_attribs(font_before, font_after, scale_upm=True):
     attribs_a = font_before.attribs
     attribs_b = font_after.attribs
 
-    upm_a = font_before._ttfont['head'].unitsPerEm
-    upm_b = font_after._ttfont['head'].unitsPerEm
+    upm_a = font_before.ttfont['head'].unitsPerEm
+    upm_b = font_after.ttfont['head'].unitsPerEm
 
     attribs_a_h = {i['attrib']: i for i in attribs_a}
     attribs_b_h = {i['attrib']: i for i in attribs_b}
@@ -630,8 +630,8 @@ def diff_marks(font_before, font_after, marks_a, marks_b,
             "modified": [diff_table]
         }
     """
-    upm_a = font_before._ttfont['head'].unitsPerEm
-    upm_b = font_after._ttfont['head'].unitsPerEm
+    upm_a = font_before.ttfont['head'].unitsPerEm
+    upm_b = font_after.ttfont['head'].unitsPerEm
 
     charset_a = set([font_before.glyph(g).key for g in font_before.glyphset])
     charset_b = set([font_after.glyph(g).key for g in font_after.glyphset])

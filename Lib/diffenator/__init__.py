@@ -162,7 +162,7 @@ class Tbl:
                 len(self._data), limit)
             )
 
-        hb.ot_font_set_funcs(font._hb_font)
+        hb.ot_font_set_funcs(font.hbfont)
 
         # Draw glyphs
         x, y, baseline = 20, 200, 0
@@ -175,23 +175,23 @@ class Tbl:
             buf.guess_segment_properties()
             try:
                 features = {f: True for f in row['features']}
-                hb.shape(font._hb_font, buf, features)
+                hb.shape(font.hbfont, buf, features)
             except KeyError:
-                hb.shape(hb_font, buf)
+                hb.shape(font.hbfont, buf)
 
             char_info = buf.glyph_infos
             char_pos = buf.glyph_positions
             for info, pos in zip(char_info, char_pos):
                 gid = info.codepoint            
-                font._ft_font.load_glyph(gid, flags=6)
-                bitmap = font._slot.bitmap
+                font.ftfont.load_glyph(gid, flags=6)
+                bitmap = font.ftslot.bitmap
 
                 if bitmap.width > 0:
                     ctx.set_source_rgb(0, 0, 0)
-                    glyph_surface = _make_image_surface(font._ft_font.glyph.bitmap, copy=False)
+                    glyph_surface = _make_image_surface(font.ftfont.glyph.bitmap, copy=False)
                     ctx.set_source_surface(glyph_surface,
-                                           x_pos + font._slot.bitmap_left + (pos.x_offset / 64.),
-                                           y_pos - font._slot.bitmap_top - (pos.y_offset / 64.))
+                                           x_pos + font.ftslot.bitmap_left + (pos.x_offset / 64.),
+                                           y_pos - font.ftslot.bitmap_top - (pos.y_offset / 64.))
                     glyph_surface.flush()
                     ctx.paint()
                 x_pos += (pos.x_advance) / 64.

@@ -41,70 +41,48 @@ class DFont(TTFont):
     """Wrapper for ttfont, freetype and hb fonts"""
     def __init__(self, path=None, lazy=False, size=1500):
         self._path = path
-        self._ttfont = TTFont(self._path)
-        self._src = TTFont(copy(self._path))
-        self._glyphset = self._gen_inputs() if self._path else []
-        self._instance_coordinates = self._get_dflt_instance_coordinates()
-        self._axis_order = None
-        self._instances_coordinates = self._get_instances_coordinates()
-        self._glyphs = self._marks = self._mkmks = self._kerns = \
-            self._glyph_metrics = self._names = self._attribs = None
+        self.ttfont = TTFont(self._path)
+        self._src_ttfont = TTFont(copy(self._path))
+        self.glyphset = self._gen_inputs() if self._path else []
+        self.axis_order = None
+        self.instance_coordinates = self._get_dflt_instance_coordinates()
+        self.instances_coordinates = self._get_instances_coordinates()
+        self.glyphs = self.marks = self.mkmks = self.kerns = \
+            self.glyph_metrics = self.names = self.attribs = None
 
-
-        self._ft_font = freetype.Face(self._path)
-        self._slot = self._ft_font.glyph
+        self.ftfont = freetype.Face(self._path)
+        self.ftslot = self.ftfont.glyph
 
         self.size = size
-        self._ft_font.set_char_size(self.size)
+        self.ftfont.set_char_size(self.size)
 
-        # HB font
         with open(self._path, 'rb') as fontfile:
             self._fontdata = fontfile.read()
-        self._hb_face = hb.Face.create(self._fontdata)
-        self._hb_font = hb.Font.create(self._hb_face)
+        self.hbface = hb.Face.create(self._fontdata)
+        self.hbfont = hb.Font.create(self.hbface)
 
-        self._hb_font.scale = (self.size, self.size)
+        self.hbfont.scale = (self.size, self.size)
 
         if not lazy:
             self.recalc_tables()
 
     def _get_instances_coordinates(self):
         if self.is_variable:
-            return [i.coordinates for i in self._src["fvar"].instances]
+            return [i.coordinates for i in self._src_ttfont["fvar"].instances]
         return None
 
     def _get_dflt_instance_coordinates(self):
         if self.is_variable:
-            return {i.axisTag: i.defaultValue for i in self._src['fvar'].axes}
+            return {i.axisTag: i.defaultValue for i in self._src_ttfont['fvar'].axes}
         return None
 
-    @property
-    def path(self):
-        return self._path
-
-    @property
-    def glyphset(self):
-        return self._glyphset
-
     def glyph(self, name):
-        return self._glyphset[name]
-
-    @property
-    def axis_order(self):
-        return self._axis_order
-
-    @property
-    def instances_coordinates(self):
-        return self._instances_coordinates
-
-    @property
-    def instance_coordinates(self):
-        return self._instance_coordinates
+        return self.glyphset[name]
 
     def _gen_inputs(self):
-        if not 'cmap' in self._ttfont.keys():
+        if not 'cmap' in self.ttfont.keys():
             return []
-        inputs = InputGenerator(self._ttfont).all_inputs()
+        inputs = InputGenerator(self.ttfont).all_inputs()
         return {g.name: g for g in inputs}
 
     def recalc_input_map(self):
@@ -112,22 +90,21 @@ class DFont(TTFont):
 
     @property
     def is_variable(self):
-        if 'fvar' in self._src:
+        if 'fvar' in self._src_ttfont:
             return True
         return False
 
     def set_variations(self, axes):
         """Instantiate a ttfont VF with axes vals"""
-        from copy import copy
         if self.is_variable:
-            font = instantiateVariableFont(self._src, axes, inplace=False)
-            self._ttfont = copy(font)
-            self._axis_order = [a.axisTag for a in self._src['fvar'].axes]
-            self._instance_coordinates = {a.axisTag: a.defaultValue for a in
-                                    self._src['fvar'].axes}
+            font = instantiateVariableFont(self._src_ttfont, axes, inplace=False)
+            self.ttfont = copy(font)
+            self.axis_order = [a.axisTag for a in self._src_ttfont['fvar'].axes]
+            self.instance_coordinates = {a.axisTag: a.defaultValue for a in
+                                    self._src_ttfont['fvar'].axes}
             for axis in axes:
-                if axis in self._instance_coordinates:
-                    self._instance_coordinates[axis] = axes[axis]
+                if axis in self.instance_coordinates:
+                    self.instance_coordinates[axis] = axes[axis]
                 else:
                     print("font has no axis called {}".format(axis))
             self.recalc_tables()
@@ -137,10 +114,10 @@ class DFont(TTFont):
                 coord = FT_Fixed(int(self.instance_coordinates[name]) << 16)
                 coords.append(coord)
             ft_coords = (FT_Fixed * len(coords))(*coords)
-            FT_Set_Var_Design_Coordinates(self._ft_font._FT_Face, len(ft_coords), ft_coords)
-            self._hb_face = hb.Face.create(self._fontdata)
-            self._hb_font = hb.Font.create(self._hb_face)
-            self._hb_font.set_variations(self.instance_coordinates)
+            FT_Set_Var_Design_Coordinates(self.ftfont._FT_Face, len(ft_coords), ft_coords)
+            self.hbface = hb.Face.create(self._fontdata)
+            self.hbfont = hb.Font.create(self.hbface)
+            self.hbfont.set_variations(self.instance_coordinates)
         else:
             print("Not vf")
 
@@ -149,53 +126,21 @@ class DFont(TTFont):
         static font"""
         variations = {}
         if self.is_variable:
-            variations["wght"] = dfont._ttfont["OS/2"].usWeightClass
+            variations["wght"] = dfont.ttfont["OS/2"].usWeightClass
             # TODO (M Foley) add wdth, slnt axes
             self.set_variations(variations)
 
     def recalc_tables(self):
         """Recalculate DFont tables"""
         anchors = DumpAnchors(self)
-        self._glyphs = dump_glyphs(self)
-        self._marks = anchors.marks_table
-        self._mkmks = anchors.mkmks_table
-        self._glyph_metrics = dump_glyph_metrics(self)
-        self._attribs = dump_attribs(self)
-        self._names = dump_nametable(self)
-        self._kerns = dump_kerning(self)
-        self._metrics = dump_glyph_metrics(self)
-
-    @property
-    def glyphs(self):
-        return self._glyphs
-
-    @property
-    def marks(self):
-        return self._marks
-
-    @property
-    def mkmks(self):
-        return self._mkmks
-
-    @property
-    def glyph_metrics(self):
-        return self._glyph_metrics
-
-    @property
-    def attribs(self):
-        return self._attribs
-
-    @property
-    def names(self):
-        return self._names
-
-    @property
-    def kerns(self):
-        return self._kerns
-
-    @property
-    def metrics(self):
-        return self._metrics
+        self.glyphs = dump_glyphs(self)
+        self.marks = anchors.marks_table
+        self.mkmks = anchors.mkmks_table
+        self.glyph_metrics = dump_glyph_metrics(self)
+        self.attribs = dump_attribs(self)
+        self.names = dump_nametable(self)
+        self.kerns = dump_kerning(self)
+        self.metrics = dump_glyph_metrics(self)
 
 
 class InputGenerator(HbInputGenerator):
@@ -289,3 +234,4 @@ class Glyph:
 
     def __str__(self):
         return self.name
+
