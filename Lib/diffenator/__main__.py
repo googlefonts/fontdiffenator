@@ -23,22 +23,22 @@ attribs, metrics, glyphs and kerns.
 Examples
 --------
 Diff everything:
-diffenator /path/to/font_a.ttf /path/to/font_b.ttf
+diffenator /path/to/font_before.ttf /path/to/font_after.ttf
 
 Diff just a nametable:
-diffenator /path/to/font_a.ttf /path/to/font_b.ttf -td names
+diffenator /path/to/font_before.ttf /path/to/font_after.ttf -td names
 
 Diff nametable and marks:
-diffenator /path/to/font_a.ttf /path/to/font_b.ttf -td names marks
+diffenator /path/to/font_before.ttf /path/to/font_after.ttf -td names marks
 
 Output report as markdown:
-diffenator /path/to/font_a.ttf /path/to/font_b.ttf -md
+diffenator /path/to/font_before.ttf /path/to/font_after.ttf -md
 
 Diff kerning and ignore differences under 30 units:
-diffenator /path/to/font_a.ttf /path/to/font_b.ttf -td kerns --kerns_thresh 30
+diffenator /path/to/font_before.ttf /path/to/font_after.ttf -td kerns --kerns_thresh 30
 
 Output images:
-diffenator /path/to/font_a.ttf /path/to/font_b.ttf -r /path/to/img_dir
+diffenator /path/to/font_before.ttf /path/to/font_after.ttf -r /path/to/img_dir
 """
 from argparse import RawTextHelpFormatter
 from diffenator import CHOICES, __version__
@@ -52,8 +52,8 @@ def main():
                                      formatter_class=RawTextHelpFormatter)
     parser.add_argument('--version', action='version', version=__version__)
 
-    parser.add_argument('font_a')
-    parser.add_argument('font_b')
+    parser.add_argument('font_before')
+    parser.add_argument('font_after')
     parser.add_argument('-td', '--to_diff', nargs='+', choices=CHOICES,
                         default='*',
                         help="categories to diff. '*'' diffs everything")
@@ -92,23 +92,24 @@ def main():
             glyphs_thresh=args.glyphs_thresh,
             metrics_thresh=args.metrics_thresh,
             to_diff=set(args.to_diff),
+            render_diffs=args.render_diffs
     )
-    font_a = DFont(args.font_a)
-    font_b = DFont(args.font_b)
+    font_before = DFont(args.font_before)
+    font_after = DFont(args.font_after)
 
-    if font_a.is_variable and not font_b.is_variable:
-        font_a.set_variations_from_static(font_b)
+    if font_before.is_variable and not font_after.is_variable:
+        font_before.set_variations_from_static(font_after)
 
-    elif not font_a.is_variable and font_b.is_variable:
-        font_b.set_variations_from_static(font_a)
+    elif not font_before.is_variable and font_after.is_variable:
+        font_after.set_variations_from_static(font_before)
 
-    elif font_a.is_variable and font_b.is_variable:
+    elif font_before.is_variable and font_after.is_variable:
         variations = {s.split('=')[0]: float(s.split('=')[1]) for s
                       in args.vf_instance.split(", ")}
-        font_a.set_variations(variations)
-        font_b.set_variations(variations)
+        font_before.set_variations(variations)
+        font_after.set_variations(variations)
 
-    diff = DiffFonts(font_a, font_b, diff_options)
+    diff = DiffFonts(font_before, font_after, diff_options)
 
     if args.markdown:
         print(diff.to_md(args.output_lines))
