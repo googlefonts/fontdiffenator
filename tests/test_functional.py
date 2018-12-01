@@ -9,20 +9,18 @@ paths = ['path/to/font_a', 'path/to/font_b']
     (path/to/font_b, path/to/font_a),
 ]
 
-and run them through our main diff_fonts functions.
+and run them through our main DiffFonts functions.
 
 This test is slow and should be run on challenging fonts.
 """
-from diffenator.diff import diff_fonts
-from diffenator.font import InputFont
-from diffenator.utils import vf_instance
-from diffenator.visualize import render_table
-from diffenator.glyphs import dump_glyphs
+from diffenator.diff import DiffFonts
+from diffenator.font import DFont
 from itertools import permutations
 import collections
 from glob import glob
 import os
 import unittest
+import tempfile
 
 
 class TestFunctionality(unittest.TestCase):
@@ -34,28 +32,30 @@ class TestFunctionality(unittest.TestCase):
 
     def test_diff(self):
         for font_a_path, font_b_path in self.font_path_combos:
-            font_a = InputFont(font_a_path)
-            font_b = InputFont(font_b_path)
-            diff = diff_fonts(font_a, font_b)
+            font_a = DFont(font_a_path)
+            font_b = DFont(font_b_path)
+            diff = DiffFonts(font_a, font_b)
+            with tempfile.TemporaryDirectory() as gif_dir:
+                diff.to_gifs(gif_dir)
+                self.assertNotEqual(len(os.listdir(gif_dir)), 0)
             self.assertNotEqual(diff, collections.defaultdict(dict))
 
     def test_diff_vf_vs_static(self):
         font_a_path = os.path.join(self._path, 'data', 'vf_test', 'Fahkwang-VF.ttf')
         font_b_path = os.path.join(self._path, 'data', 'vf_test', 'Fahkwang-Light.ttf')
-        font_a = InputFont(font_a_path)
-        font_b = InputFont(font_b_path)
+        font_a = DFont(font_a_path)
+        font_b = DFont(font_b_path)
 
-        font_a = vf_instance(font_a, 'Light')
-        diff = diff_fonts(font_a, font_b)
+        font_a.set_variations({"wght": 300})
+        diff = DiffFonts(font_a, font_b)
         self.assertNotEqual(diff, collections.defaultdict(dict))
 
 
 class TestVisualize(unittest.TestCase):
     def test_viz(self):
         font_path = os.path.join(os.path.dirname(__file__), "data", "Play-Regular.ttf")
-        font = InputFont(font_path)
-        glyphs = dump_glyphs(font)
-        img = render_table(font, glyphs)
+        font = DFont(font_path)
+        img = font.glyphs.to_png(limit=10000)
         self.assertNotEqual(img, None)
 
 
