@@ -42,7 +42,7 @@ class DFont(TTFont):
     def __init__(self, path=None, lazy=False, size=1500):
         self._path = path
         self.ttfont = TTFont(self._path)
-        self._src_ttfont = TTFont(copy(self._path))
+        self._src_ttfont = TTFont(self._path)
         self.glyphset = self._gen_inputs() if self._path else []
         self.axis_order = None
         self.instance_coordinates = self._get_dflt_instance_coordinates()
@@ -118,6 +118,7 @@ class DFont(TTFont):
             self.hbface = hb.Face.create(self._fontdata)
             self.hbfont = hb.Font.create(self.hbface)
             self.hbfont.set_variations(self.instance_coordinates)
+            self.hbfont.scale = (self.size, self.size)
         else:
             print("Not vf")
 
