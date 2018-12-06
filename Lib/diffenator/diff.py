@@ -580,6 +580,7 @@ def _modified_attribs(attribs_a, attribs_b,
                 'yStrikeoutSize',
                 'usWeightClass',
                 'unitsPerEm'
+                'fsType',
             )
             if attribs_a[k]['attrib'] not in keep and \
                isinstance(attribs_a[k]['value'], (int, float)):
