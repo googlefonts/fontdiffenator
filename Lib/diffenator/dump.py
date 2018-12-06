@@ -82,10 +82,10 @@ OS2 = [
     ('ulUnicodeRange4', int),
     ('usBreakChar', int),
     ('usDefaultChar', int),
-    ('usFirstCharIndex', int),
-    ('usLastCharIndex', int),
-    ('usMaxContex', int),
-    ('usMaxContext', int),
+#    ('usFirstCharIndex', int),
+#    ('usLastCharIndex', int),
+#    ('usMaxContex', int),
+#    ('usMaxContext', int),
     ('usWeightClass', int),
     ('usWidthClass', int),
     ('usWinAscent', int),
@@ -456,8 +456,8 @@ class DumpAnchors:
     """Dump a font's mark and mkmks positions"""
     def __init__(self, font):
         self._font = font
-        self._ttfont = font.ttfont
-        self._lookups = self._get_lookups() if 'GPOS' in self._ttfont.keys() else []
+        self.ttfont = font.ttfont
+        self._lookups = self._get_lookups() if 'GPOS' in self.ttfont.keys() else []
 
         self._base = []
         self._marks = []
@@ -490,7 +490,7 @@ class DumpAnchors:
 
     def _get_lookups(self):
         """Return the lookups used for the mark and mkmk feature"""
-        gpos = self._ttfont['GPOS']
+        gpos = self.ttfont['GPOS']
         lookups = []
         lookup_idxs = []
         for feat in gpos.table.FeatureList.FeatureRecord:
