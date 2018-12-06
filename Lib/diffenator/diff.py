@@ -311,8 +311,8 @@ def _modified_glyphs(glyphs_a, glyphs_b, thresh=0.00,
     return table
 
 
-def diff_rendering(font_before, font_after, string, features):
-    """Render a string for each font and return the different pixel count
+    def diff_rendering(font_before, font_after, string, features):
+        """Render a string for each font and return the different pixel count
     as a percentage"""
     img_a = render_string(font_before, string, features)
     img_b = render_string(font_after, string, features)
@@ -579,7 +579,7 @@ def _modified_attribs(attribs_a, attribs_b,
                 'fontRevision',
                 'yStrikeoutSize',
                 'usWeightClass',
-                'unitsPerEm'
+                'unitsPerEm',
                 'fsType',
             )
             if attribs_a[k]['attrib'] not in keep and \
@@ -666,7 +666,7 @@ def diff_marks(font_before, font_after, marks_a, marks_b,
 
 
 def _modified_marks(marks_a, marks_b, thresh=4,
-                    upm_a=None, upm_b=None, scale_upms=False):
+        upm_a=None, upm_b=None, scale_upms=True):
 
     marks = ['base_x', 'base_y', 'mark_x', 'mark_y']
 
@@ -678,7 +678,6 @@ def _modified_marks(marks_a, marks_b, thresh=4,
             for mark in marks:
                 marks_a[k][mark] = (marks_a[k][mark] / float(upm_a)) * upm_a
                 marks_b[k][mark] = (marks_b[k][mark] / float(upm_b)) * upm_a
-
         offset_a_x = marks_a[k]['base_x'] - marks_a[k]['mark_x']
         offset_a_y = marks_a[k]['base_y'] - marks_a[k]['mark_y']
         offset_b_x = marks_b[k]['base_x'] - marks_b[k]['mark_x']

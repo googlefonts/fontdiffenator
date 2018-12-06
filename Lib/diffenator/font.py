@@ -43,7 +43,8 @@ class DFont(TTFont):
         self._path = path
         self.ttfont = TTFont(self._path)
         self._src_ttfont = TTFont(self._path)
-        self.glyphset = self._gen_inputs() if self._path else []
+        self.glyphset = None
+        self.recalc_glyphset()
         self.axis_order = None
         self.instance_coordinates = self._get_dflt_instance_coordinates()
         self.instances_coordinates = self._get_instances_coordinates()
@@ -79,14 +80,11 @@ class DFont(TTFont):
     def glyph(self, name):
         return self.glyphset[name]
 
-    def _gen_inputs(self):
+    def recalc_glyphset(self):
         if not 'cmap' in self.ttfont.keys():
-            return []
+            self.glyphset = []
         inputs = InputGenerator(self.ttfont).all_inputs()
-        return {g.name: g for g in inputs}
-
-    def recalc_input_map(self):
-        self._input_map = self._gen_inputs()
+        self.glyphset = {g.name: g for g in inputs}
 
     @property
     def is_variable(self):
@@ -133,6 +131,7 @@ class DFont(TTFont):
 
     def recalc_tables(self):
         """Recalculate DFont tables"""
+        self.recalc_glyphset()
         anchors = DumpAnchors(self)
         self.glyphs = dump_glyphs(self)
         self.marks = anchors.marks_table
