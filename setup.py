@@ -19,6 +19,7 @@ setup(
         ],
     },
     install_requires=[
+        "fonttools>=3.34.2",
         "fonttools>=3.28.0",
 	"Pillow==5.3.0",
         "pycairo==1.18.0",
