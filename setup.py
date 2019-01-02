@@ -14,6 +14,7 @@ setup(
     entry_points={
         "console_scripts": [
             "diffenator = diffenator.__main__:main",
+            "fontdiffenator = diffenator.__main__:main",
             "dumper = diffenator.dumper:main",
         ],
     },
