@@ -56,14 +56,14 @@ def main():
     parser.add_argument('font_after')
     parser.add_argument('-td', '--to_diff', nargs='+', choices=CHOICES,
                         default='*',
-                        help="categories to diff. '*'' diffs everything")
+                        help="Categories to diff. '*' diffs everything")
 
     parser.add_argument('-ol', '--output-lines', type=int, default=50,
-                        help="Amout of diffs to report for each diff table")
+                        help="Amout of rows to report for each diff table")
     parser.add_argument('-md', '--markdown', action='store_true',
                         help="Output report as markdown.")
     parser.add_argument('-v', '--verbose', action='store_true',
-                        help='Report diffs which are the same')
+                        help='Output verbose reports')
 
     parser.add_argument('-i', '--vf-instance', default='wght=400',
                         help='Set vf variations e.g "wght=400"')

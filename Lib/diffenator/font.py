@@ -1,6 +1,4 @@
-"""DFont inherits TTFont and adds an input map attribute. This attrib
-contains a glyph object which contains the input, features for each glyph.
-"""
+"""Module for DFont"""
 from fontTools.misc.py23 import unichr
 from fontTools.ttLib import TTFont
 from fontTools.varLib.mutator import instantiateVariableFont
@@ -38,7 +36,7 @@ if sys.version_info.major == 3:
 
 
 class DFont(TTFont):
-    """Wrapper for ttfont, freetype and hb fonts"""
+    """Container font for ttfont, freetype and hb fonts"""
     def __init__(self, path=None, lazy=False, size=1500):
         self.path = path
         self.ttfont = TTFont(self.path)

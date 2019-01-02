@@ -36,8 +36,8 @@ class Tbl:
             self._data = []
         else:
             self._data = data
-        self._table_name = table_name
-        self._renderable = renderable
+        self.table_name = table_name
+        self.renderable = renderable
         self._report_columns = None
 
     def append(self, item):
@@ -48,14 +48,6 @@ class Tbl:
     def report_columns(self, items):
         """Columns to display in report"""
         self._report_columns = items
-
-    @property
-    def renderable(self):
-        return self._renderable
-
-    @property
-    def table_name(self):
-        return self._table_name
 
     def to_txt(self, limit=50, strings_only=False, dst=None):
         return self._report(TXTFormatter, limit, strings_only, dst)
@@ -68,14 +60,9 @@ class Tbl:
 
         Parameters
         ----------
-        table: list
-            A dumped font table produced by a dump function e.g
-            table = dump_kerning(font)
-        table_name: str
-            Name of table which is being dumped. Used in report only
-        Formatter: Formatter
+        formatter: Formatter
             Text formatter to use for report
-        String_only: bool
+        strings_only: bool
             If True only return the character combos.
 
         Returns
@@ -83,9 +70,9 @@ class Tbl:
         str
         """
         report = formatter()
-        report.subsubheading(self._table_name)
+        report.subsubheading(self.table_name)
 
-        if strings_only and self._renderable:
+        if strings_only and self.renderable:
             string = ' '.join([r['string'] for r in self._data[:limit]])
             report.paragraph(string)
         else:
@@ -105,26 +92,22 @@ class Tbl:
                 limit=800, size=1500):
         """Use HB, FreeType and Cairo to produce a png for a table.
 
-        TODO (M Foley) better packaging for pycairo, freetype-py and uharfbuzz.
-        Users should be able to pip install these bindings without needing to
-        install the correct libs.
-
-        A special mention to the individuals who maintain these packages. Using
-        these dependencies has sped up the process of creating diff images
-        significantly. It's an incredible age we live in.
-
-
         Parameters
         ----------
-        font: InputFont
-        diff_table: list[dict, ...]
-        title: str
-            Title of image
+        font: DFont
         font_position: str
             Label indicating which font has been used. 
         dst: str
             Path to output image. If no path is given, return in-memory 
         """
+        # TODO (M Foley) better packaging for pycairo, freetype-py
+        # and uharfbuzz.
+        # Users should be able to pip install these bindings without needing
+        # to install the correct libs.
+
+        # A special mention to the individuals who maintain these packages. Using
+        # these dependencies has sped up the process of creating diff images
+        # significantly. It's an incredible age we live in.
         tab = int(font.size / 25)
         width, height = 1024, 200
 
@@ -151,7 +134,7 @@ class Tbl:
         ctx.set_font_size(30)
         ctx.set_source_rgb(0.5, 0.5, 0.5)
         ctx.move_to(20, 50)
-        ctx.show_text("{}: {}".format(self._table_name, len(self._data)))
+        ctx.show_text("{}: {}".format(self.table_name, len(self._data)))
         ctx.move_to(20, 100)
         if font_position:
             ctx.show_text("Font Set: {}".format(font_position))
@@ -214,8 +197,6 @@ class Tbl:
         Z.flush()
         if dst:
             Z.write_to_png(dst)
-        # TODO (M Foley) GDB Debug segmentation fault. It only occurs on large
-        # images.
         else:
             img = StringIO()
             Z.write_to_png(img)

@@ -12,11 +12,11 @@ def dump_nametable(font):
 
     Parameters
     ----------
-    font: InputFont
+    font: DFont
 
     Returns
     -------
-    dump_table: list
+    DFontTable
         Each row in the table is represented as a dict.
         [
             {'id': (1, 3, 1, 1033), 'string': 'Noto Sans'},
@@ -158,11 +158,11 @@ def dump_attribs(font):
 
     Parameters
     ----------
-    font: InputFont
+    font: DFont
 
     Returns
     -------
-    dump_table: list
+    DFontTable
         Each row in the table is represented as a dict.
         [
             {'table': 'OS/2', 'attrib': 'fsSelection': 'value': 128},
@@ -204,7 +204,7 @@ def dump_glyphs(font):
 
     Returns
     -------
-    dump_table: list
+    DFontTableIMG
     Each row in the table is represented as a dict.
         [
             {'glyph': A, 'area': 1000, string': 'A',
@@ -234,11 +234,11 @@ def dump_glyph_metrics(font):
 
     Parameters
     ----------
-    font: InputFont
+    font: DFont
 
     Returns
     -------
-    dump_table: list
+    DFontTableIMG
     Each row in the table is represented as a dict.
         [
             {'glyph': A, 'lsb': 50, 'rsb': 50, 'adv': 200,
@@ -348,11 +348,11 @@ def dump_kerning(font):
 
     Parameters
     ----------
-    font: InputFont
+    font: DFont
 
     Returns
     -------
-    dump_table: list
+    DFontTableIMG
         Each row in the table is represented as a dict.
         [
             {'left': A, 'right': V, 'value': -50,

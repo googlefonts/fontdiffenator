@@ -26,3 +26,4 @@ def render_string(font, string, features=None, pt_size=128):
         raise OSError(
             "hb-view was not found. Check if Harbuzz is installed."
         )
+
