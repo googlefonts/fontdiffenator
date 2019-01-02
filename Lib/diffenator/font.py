@@ -40,9 +40,9 @@ if sys.version_info.major == 3:
 class DFont(TTFont):
     """Wrapper for ttfont, freetype and hb fonts"""
     def __init__(self, path=None, lazy=False, size=1500):
-        self._path = path
-        self.ttfont = TTFont(self._path)
-        self._src_ttfont = TTFont(self._path)
+        self.path = path
+        self.ttfont = TTFont(self.path)
+        self._src_ttfont = TTFont(self.path)
         self.glyphset = None
         self.recalc_glyphset()
         self.axis_order = None
@@ -51,13 +51,13 @@ class DFont(TTFont):
         self.glyphs = self.marks = self.mkmks = self.kerns = \
             self.glyph_metrics = self.names = self.attribs = None
 
-        self.ftfont = freetype.Face(self._path)
+        self.ftfont = freetype.Face(self.path)
         self.ftslot = self.ftfont.glyph
 
         self.size = size
         self.ftfont.set_char_size(self.size)
 
-        with open(self._path, 'rb') as fontfile:
+        with open(self.path, 'rb') as fontfile:
             self._fontdata = fontfile.read()
         self.hbface = hb.Face.create(self._fontdata)
         self.hbfont = hb.Font.create(self.hbface)
@@ -83,7 +83,7 @@ class DFont(TTFont):
     def recalc_glyphset(self):
         if not 'cmap' in self.ttfont.keys():
             self.glyphset = []
-        inputs = InputGenerator(self.ttfont).all_inputs()
+        inputs = InputGenerator(self).all_inputs()
         self.glyphset = {g.name: g for g in inputs}
 
     @property
@@ -150,8 +150,8 @@ class InputGenerator(HbInputGenerator):
         """Generate harfbuzz inputs for all glyphs in a given font."""
 
         inputs = []
-        glyph_set = self.font.getGlyphSet()
-        for name in self.font.getGlyphOrder():
+        glyph_set = self.font.ttfont.getGlyphSet()
+        for name in self.font.ttfont.getGlyphOrder():
             is_zero_width = glyph_set[name].width == 0
             cur_input = self.input_from_name(name, pad=is_zero_width)
             if cur_input is not None:

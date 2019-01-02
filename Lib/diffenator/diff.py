@@ -45,7 +45,7 @@ def timer(method):
 
 
 class DiffFonts:
-    _settings = dict(
+    SETTINGS = dict(
         glyphs_thresh=0,
         marks_thresh=0,
         mkmks_thresh=0,
@@ -58,6 +58,7 @@ class DiffFonts:
         self._font_before = font_before
         self._font_after = font_after
         self._data = collections.defaultdict(dict)
+        self._settings = self.SETTINGS
         if settings:
             for key in settings:
                 self._settings[key] = settings[key]
@@ -125,7 +126,9 @@ class DiffFonts:
         """Serialiser for container data"""
         pass
 
-    def marks(self, threshold=_settings["marks_thresh"]):
+    def marks(self, threshold=None):
+        if not threshold:
+            threshold = self._settings["marks_thresh"]
         self._data["marks"] = diff_marks(
                 self._font_before, self._font_after,
                 self._font_before.marks, self._font_after.marks,
@@ -133,7 +136,9 @@ class DiffFonts:
                 thresh=threshold
         )
 
-    def mkmks(self, threshold=_settings["mkmks_thresh"]):
+    def mkmks(self, threshold=None):
+        if not threshold:
+            threshold = self._settings["mkmks_thresh"]
         self._data["mkmks"] = diff_marks(
             self._font_before, self._font_after,
             self._font_before.mkmks, self._font_after.mkmks,
@@ -141,17 +146,23 @@ class DiffFonts:
             thresh=threshold
         )
 
-    def metrics(self, threshold=_settings["metrics_thresh"]):
+    def metrics(self, threshold=None):
+        if not threshold:
+            threshold = self._settings["metrics_thresh"]
         self._data["metrics"] = diff_metrics(self._font_before, self._font_after,
                 thresh=threshold)
 
-    def glyphs(self, threshold=_settings["glyphs_thresh"],
-            render_diffs=_settings["render_diffs"]):
-        print(self._settings)
+    def glyphs(self, threshold=None, render_diffs=None):
+        if not threshold:
+            threshold = self._settings["glyphs_thresh"]
+        if not render_diffs:
+            render_diffs = self._settings["render_diffs"]
         self._data["glyphs"] = diff_glyphs(self._font_before, self._font_after,
             thresh=threshold, render_diffs=render_diffs)
 
-    def kerns(self, threshold=_settings["kerns_thresh"]):
+    def kerns(self, threshold=None):
+        if not threshold:
+            threshold = self._settings["kerns_thresh"]
         self._data["kerns"] = diff_kerning(self._font_before, self._font_after,
             thresh=threshold)
 
@@ -295,7 +306,7 @@ def _modified_glyphs(glyphs_a, glyphs_b, thresh=0.00,
             glyphs_b[k]['area'] = (glyphs_b[k]['area'] / upm_b) * upm_a
 
         if render_diffs:
-            font_a = glyphs_a[k]['glyph'].font
+            font_before = glyphs_a[k]['glyph'].font
             font_after = glyphs_b[k]['glyph'].font
             glyph = glyphs_a[k]
             diff = diff_rendering(font_before, font_after, glyph['string'], glyph['features'])
@@ -311,8 +322,8 @@ def _modified_glyphs(glyphs_a, glyphs_b, thresh=0.00,
     return table
 
 
-    def diff_rendering(font_before, font_after, string, features):
-        """Render a string for each font and return the different pixel count
+def diff_rendering(font_before, font_after, string, features):
+    """Render a string for each font and return the different pixel count
     as a percentage"""
     img_a = render_string(font_before, string, features)
     img_b = render_string(font_after, string, features)

@@ -6,13 +6,14 @@ try:
 except ImportError:  # py3 workaround
     from io import BytesIO as StringIO
 
+
 def render_string(font, string, features=None, pt_size=128):
     """Use Harfbuzz to render a string"""
 
     cmd = ['hb-view', '--font-size=%d' % pt_size]
-    if font.axis_locations:
+    if font.instance_coordinates:
         location = ''
-        for axis, val in font.axis_locations.items():
+        for axis, val in font.instance_coordinates.items():
             location += '{}={}, '.format(axis, val)
         cmd += ['--variations=%s' % location]
     if features:
