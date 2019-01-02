@@ -15,10 +15,8 @@ TODO (M Foley) Remove this module
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-
 from __future__ import division, print_function
-
+from fontTools.misc import unichr
 from fontTools.ttLib import TTFont
 
 
@@ -32,10 +30,10 @@ class HbInputGenerator(object):
     def __init__(self, font):
         self.font = font
         self.memo = {}
-        self.reverse_cmap = build_reverse_cmap(self.font)
+        self.reverse_cmap = build_reverse_cmap(self.font.ttfont)
 
         self.widths = {}
-        glyph_set = font.getGlyphSet()
+        glyph_set = self.font.ttfont.getGlyphSet()
         for name in glyph_set.keys():
             glyph = glyph_set[name]
             if glyph.width:
@@ -48,7 +46,7 @@ class HbInputGenerator(object):
 
         # some stripped fonts don't have space
         try:
-          space_name = font['cmap'].tables[0].cmap[0x20]
+          space_name = self.font.ttfont['cmap'].tables[0].cmap[0x20]
           self.space_width = self.widths[space_name]
         except:
           self.space_width = -1
@@ -57,8 +55,8 @@ class HbInputGenerator(object):
         """Generate harfbuzz inputs for all glyphs in a given font."""
 
         inputs = []
-        glyph_set = self.font.getGlyphSet()
-        for name in self.font.getGlyphOrder():
+        glyph_set = self.font.ttfont.getGlyphSet()
+        for name in self.font.ttfont.getGlyphOrder():
             is_zero_width = glyph_set[name].width == 0
             cur_input = self.input_from_name(name, pad=is_zero_width)
             if cur_input is not None:
@@ -131,9 +129,9 @@ class HbInputGenerator(object):
         """
 
         inputs = []
-        if 'GSUB' not in self.font:
+        if 'GSUB' not in self.font.ttfont:
             return inputs
-        gsub = self.font['GSUB'].table
+        gsub = self.font.ttfont['GSUB'].table
         if gsub.LookupList is None:
             return inputs
         for lookup_index, lookup in enumerate(gsub.LookupList.Lookup):
@@ -338,3 +336,4 @@ def get_largest_cmap(font):
       cmap = table.cmap
       break
   return cmap
+

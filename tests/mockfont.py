@@ -1,68 +1,66 @@
-from fontTools.ttLib import newTable
-from fontTools.pens.ttGlyphPen import TTGlyphPen
-from fontTools.ttLib.tables._c_m_a_p import cmap_format_4
 from fontTools.agl import AGL2UV
 from fontTools.feaLib.builder import addOpenTypeFeaturesFromString
 
-from diffenator.font import InputFont
+from diffenator.font import DFont
+from fontTools.fontBuilder import FontBuilder
+from fontTools.pens.ttGlyphPen import TTGlyphPen 
+import tempfile
 
 
-def mock_font(names=None,
-              attrs=None,
-              glyphs=None,
-              fea=None):
-    """Create a dummy font to test."""
-    font = InputFont()
-    if names:
-        _mock_set_names(font, names)
-    if attrs:
-        _mock_set_attr(font, attrs)
-    else:
-        attrs = [('head', 'unitsPerEm', 1000)]
-        _mock_set_attr(font, attrs)
-    if glyphs:
-        _mock_set_glyphs(font, glyphs)
-    if fea:
-        addOpenTypeFeaturesFromString(font, fea)
-    font.recalc_input_map()
-    return font
+def drawTestGlyph(pen):
+    pen.moveTo((100, 100))
+    pen.lineTo((100, 1000))
+    pen.qCurveTo((200, 900), (400, 900), (500, 1000))
+    pen.lineTo((500, 100))
+    pen.closePath()
 
 
-def _mock_set_names(font, names):
-    font['name'] = name = newTable('name')
-    for entry in names:
-        font['name'].setName(*entry)
+def test_glyph():
+    pen = TTGlyphPen(None)
+    drawTestGlyph(pen)
+    glyph = pen.glyph()
+    return glyph
+
+def minimalTTF():
+    fb = FontBuilder(1024, isTTF=True)
+    fb.updateHead(unitsPerEm=1000, created=0, modified=0)
+    fb.setupGlyphOrder([".notdef", ".null", "A", "Aacute", "V", "acutecomb", "gravecomb", "A.alt"])
+    fb.setupCharacterMap({65: "A", 192: "Aacute", 86: "V", 769: "acutecomb", 768: "gravecomb"})
+    advanceWidths = {".notdef": 600, "A": 600, "Aacute": 600, "V": 600, ".null": 600, "acutecomb": 0, "gravecomb": 0, "A.alt": 600}
+    familyName = "HelloTestFont"
+    styleName = "TotallyNormal"
+    nameStrings = dict(familyName=dict(en="HelloTestFont", nl="HalloTestFont"),
+                       styleName=dict(en="TotallyNormal", nl="TotaalNormaal"))
+    nameStrings['psName'] = familyName + "-" + styleName
+    glyphs = {
+        ".notdef": test_glyph(), 
+        ".null": test_glyph(),
+        "A": test_glyph(),
+        "Aacute": test_glyph(),
+        "V": test_glyph(),
+        "acutecomb": test_glyph(),
+        "gravecomb": test_glyph(),
+        "A.alt": test_glyph()
+    }
+    fb.setupGlyf(glyphs)
+    metrics = {}
+    glyphTable = fb.font["glyf"]
+    for gn, advanceWidth in advanceWidths.items():
+        metrics[gn] = (advanceWidth, glyphTable[gn].xMin)
+    fb.setupHorizontalMetrics(metrics)
+    fb.setupHorizontalHeader()
+    fb.setupNameTable(nameStrings)
+    fb.setupOS2()
+    fb.setupPost()
+    return fb
 
 
-def _mock_set_attr(font, attrs):
-    for table, attr, value in attrs:
-        if table not in font.keys():
-            font[table] = newTable(table)
-        setattr(font[table], attr, value)
-
-
-def _mock_set_glyphs(font, glyphs):
-    font.setGlyphOrder([g[0] for g in glyphs])
-    font['hmtx'] = hmtx = newTable('hmtx')
-    font['glyf'] = glyf = newTable('glyf')
-    font['cmap'] = cmap = newTable('cmap')
-    glyph_order = font.getGlyphOrder()
-    font['glyf'].glyphs = {}
-    font['glyf'].glyphOrder = glyph_order
-
-    for name, adv, rsb in glyphs:
-        pen = TTGlyphPen(None)
-        font['glyf'][name] = pen.glyph()
-
-    font['hmtx'].metrics = {}
-    for name, adv, rsb in glyphs:
-        font['hmtx'][name] = (adv, rsb)
-
-    table = cmap_format_4(4)
-    table.platformID = 3
-    table.platEncID = 1
-    table.language = 0
-    table.cmap = {AGL2UV[n]: n for n in glyph_order if n in AGL2UV}
-    font['cmap'].tableVersion = 0
-    font['cmap'].tables = [table]
+def mock_font():
+    f_path = tempfile.NamedTemporaryFile()
+    ttf = minimalTTF()
+    ttf.font.save(f_path.name)
+    dfont = DFont(f_path.name)
+    dfont.builder = FontBuilder(font=dfont.ttfont)
+    f_path.close()
+    return dfont
 

@@ -4,7 +4,7 @@ from distutils import log
 
 setup(
     name='fontdiffenator',
-    version='0.5.1',
+    version='0.6.3',
     author="Google Fonts Project Authors",
     description="Font regression tester for Google Fonts",
     url="https://github.com/googlefonts/diffenator",
@@ -14,10 +14,12 @@ setup(
     entry_points={
         "console_scripts": [
             "diffenator = diffenator.__main__:main",
+            "fontdiffenator = diffenator.__main__:main",
             "dumper = diffenator.dumper:main",
         ],
     },
     install_requires=[
+        "fonttools>=3.34.2",
         "fonttools>=3.28.0",
 	"Pillow==5.3.0",
         "pycairo==1.18.0",

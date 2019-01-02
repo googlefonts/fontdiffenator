@@ -1,7 +1,9 @@
+from copy import copy
 import unittest
-from mockfont import mock_font
-from diffenator.marks import DumpMarks
+from mockfont import mock_font, test_glyph
+from diffenator.dump import DumpAnchors
 from diffenator.diff import (
+    DiffFonts,
     diff_nametable,
     diff_attribs,
     diff_metrics,
@@ -18,131 +20,156 @@ if sys.version_info.major == 3:
 
 
 class TestDiffAttribs(unittest.TestCase):
-
-    def setUp(self):
-        self.font_a = mock_font(
-            glyphs=[('a', 400, 50)],
-            attrs=[('head', 'unitsPerEm', 1000),
-                   ('head', 'fontRevision', 1.000)]
-        )
-        self.font_b = mock_font(
-            glyphs=[('a', 400, 50)],
-            attrs=[('head', 'unitsPerEm', 1000),
-                   ('head', 'fontRevision', 2.000)]
-        )
-
-        self.diff = diff_attribs(self.font_a, self.font_b)
-
+ 
     def test_diff_attribs(self):
-        modified = self.diff['modified']
-        self.assertNotEqual(modified, [])
+        font_a = mock_font()
+        font_a.builder.setupOS2(sTypoAscender=800)
+        font_a.recalc_tables()
 
-    def test_upm_scale_attribs(self):
-        font_a = mock_font(
-            attrs=[
-                ('head', 'unitsPerEm', 1000),
-                ('OS/2', 'sTypoDescender', 700)
-            ]
-        )
-        font_b = mock_font(
-            attrs=[('head', 'unitsPerEm', 2000),
-                   ('OS/2', 'sTypoDescender', 1400)]
-        )
+        font_b = mock_font()
+        font_b.builder.setupOS2(sTypoAscender=1000)
+        font_b.recalc_tables()
+
         diff = diff_attribs(font_a, font_b)
-        modified = diff['modified']
+        modified = diff['modified']._data
+        self.assertNotEqual(modified, [])
         self.assertEqual(len(modified), 1)
 
-    def test_upm_scale_ignore(self):
-        font_a = mock_font(
-            attrs=[
-                ('head', 'unitsPerEm', 1000),
-                ('OS/2', 'fsSelection', 64)
-            ]
-        )
-        font_b = mock_font(
-            attrs=[
-                ('head', 'unitsPerEm', 2000),
-                ('OS/2', 'fsSelection', 128)
-            ]
-        )
+
+    def test_diff_attribs_scale(self):
+        font_a = mock_font()
+        font_a.builder.setupHead(unitsPerEm=1000)
+        font_a.builder.setupOS2(sTypoAscender=1000)
+        font_a.recalc_tables()
+        font_b = mock_font()
+        font_b.builder.setupHead(unitsPerEm=2000)
+        font_b.builder.setupOS2(sTypoAscender=2000)
+        font_b.recalc_tables()
         diff = diff_attribs(font_a, font_b)
-        modified = diff['modified']
-        self.assertNotEqual(modified, [])
+        modified = diff['modified']._data
+        self.assertEqual(len(modified), 1) # Only upm should be reported
+
+    def test_upm_scale_ignore(self):
+        font_a = mock_font()
+        font_a.builder.setupHead(unitsPerEm=1000)
+        font_a.builder.setupOS2(fsSelection=32)
+        font_a.recalc_tables()
+        font_b = mock_font()
+        font_b.builder.setupHead(unitsPerEm=2000)
+        font_b.builder.setupOS2(fsSelection=32)
+        font_b.recalc_tables()
+        diff = diff_attribs(font_a, font_b)
+        modified = diff['modified']._data
+        self.assertEqual(len(modified), 1) # only upm is returned
 
 
 class TestDiffNames(unittest.TestCase):
 
-    def setUp(self):
-        self.font_a = mock_font(
-            names=[(unicode("foobar"), 1, 1, 0, 0),
-                   (unicode("Regular"), 2, 1, 0, 0)])
-        self.font_b = mock_font(
-            names=[(unicode("barfoo"), 1, 1, 0, 0)])
-
-        self.diff = diff_nametable(self.font_a, self.font_b)
-
     def test_diff_nametable(self):
-        modified = self.diff['modified']
+        font_a = mock_font()
+        font_b = mock_font()
+        font_a.builder.setupNameTable({"psName": "foobar"})
+        font_a.recalc_tables()
+        font_b.builder.setupNameTable({"psName": "barfoo"})
+        font_b.recalc_tables()
+        diff = diff_nametable(font_a, font_b)
+        modified = diff['modified']._data
         self.assertNotEqual(modified, [])
 
     def test_subtract_nametable(self):
-        missing = self.diff['missing']
+        font_a = mock_font()
+        font_a.builder.setupNameTable({})
+        font_b = mock_font()
+        font_a.builder.setupNameTable({"psName": "foobar"})
+        font_a.recalc_tables()
+        font_b.recalc_tables()
+        diff = diff_nametable(font_a, font_b)
+        missing = diff["new"]._data
         self.assertNotEqual(missing, [])
 
 
 class TestDiffMetrics(unittest.TestCase):
 
-    def setUp(self):
-        self.font_a = mock_font(
-            glyphs=[('a', 400, 50)],
-            attrs=[('head', 'unitsPerEm', 1000)]
-        )
-        self.font_b = mock_font(
-            glyphs=[('a', 550, 10)],
-            attrs=[('head', 'unitsPerEm', 2048)]
-        )
-        self.diff = diff_metrics(self.font_a, self.font_b)
-
     def test_modified_metrics(self):
-        modified = self.diff['modified']
+        font_a = mock_font()
+        font_b = mock_font()
+
+        adv_a = {".notdef": 600, "A": 600, "Aacute": 600, "V": 600, ".null": 600, "acutecomb": 0, "gravecomb": 0, "A.alt": 600}
+        metrics_a = {}
+        glyph_tbl_a = font_a.ttfont["glyf"]
+        for gn, adv in adv_a.items():
+            metrics_a[gn] = (adv, glyph_tbl_a[gn].xMin)
+
+        adv_b = {".notdef": 600, "A": 500, "Aacute": 600, "V": 600, ".null": 600, "acutecomb": 0, "gravecomb": 0, "A.alt": 600}
+        metrics_b = {}
+        glyph_tbl_b = font_b.ttfont["glyf"]
+        for gn, adv in adv_b.items():
+            metrics_b[gn] = (adv, glyph_tbl_b[gn].xMin)
+        font_a.builder.setupHorizontalMetrics(metrics_a)
+        font_a.recalc_tables()
+        font_b.builder.setupHorizontalMetrics(metrics_b)
+        font_b.recalc_tables()
+        diff = diff_metrics(font_a, font_b)
+        modified = diff["modified"]._data
         self.assertNotEqual(modified, [])
 
     def test_upm_scale_metrics(self):
         """Check that upm scales are ignored"""
-        font_a = mock_font(
-            glyphs=[('a', 1134, 0)],
-            attrs=[('head', 'unitsPerEm', 1000)]
-        )
-        font_b = mock_font(
-            glyphs=[('a', 2268, 0)],
-            attrs=[('head', 'unitsPerEm', 2000)]
-        )
-        diff = diff_metrics(font_a, font_b,)
-        modified = diff['modified']
-        self.assertEqual(modified, [])
+        font_a = mock_font()
+        font_a.builder.updateHead(unitsPerEm=2000, created=0, modified=0)
+        font_a.recalc_tables()
+        font_b = mock_font()
+
+        adv_a = {".notdef": 1200, "A": 800, "Aacute": 1200, "V": 1200, ".null": 1200, "acutecomb": 0, "gravecomb": 0, "A.alt": 1200}
+        metrics_a = {}
+        glyph_tbl_a = font_a.ttfont["glyf"]
+        for gn, adv in adv_a.items():
+            metrics_a[gn] = (adv, glyph_tbl_a[gn].xMin)
+
+        adv_b = {".notdef": 600, "A": 600, "Aacute": 600, "V": 600, ".null": 600, "acutecomb": 0, "gravecomb": 0, "A.alt": 600}
+        metrics_b = {}
+        glyph_tbl_b = font_b.ttfont["glyf"]
+        for gn, adv in adv_b.items():
+            metrics_b[gn] = (adv, glyph_tbl_b[gn].xMin)
+        font_a.builder.setupHorizontalMetrics(metrics_a)
+        font_a.recalc_tables()
+        font_b.builder.setupHorizontalMetrics(metrics_b)
+        font_b.recalc_tables()
+        diff = diff_metrics(font_a, font_b)
+        modified = diff["modified"]._data
+        self.assertEqual(len(modified), 1)
 
 
 class TestGlyphs(unittest.TestCase):
 
     def test_ot_glyphs(self):
-        font_a = mock_font(
-            glyphs=[('a', 100, 100), ('b', 100, 100), ('f.alt', 100, 100)],
-            fea='''
-            feature liga {
-                sub a by f.alt;
-            } liga;
-        ''')
-        font_b = mock_font(
-            glyphs=[('a', 100, 100), ('b', 100, 100), ('f.alt', 100, 100)])
+        font_a = mock_font()
+        fea="""
+                feature salt {
+                sub A by A.alt;} salt;
+            """
+        font_a.builder.addOpenTypeFeatures(fea)
+        font_a.recalc_tables()
+
+        font_b = mock_font()
+        font_b.recalc_tables()
+
         self.diff = diff_glyphs(font_a, font_b)
-        missing = self.diff['missing']
-        self.assertNotEqual(missing, [])
+        new = self.diff['missing']._data
+        self.assertNotEqual(new, [])
 
     def test_missing_encoded_glyphs(self):
-        font_a = mock_font(glyphs=[('a', 0, 0), ('b', 0, 0)])
-        font_b = mock_font(glyphs=[('a', 0, 0)])
+        font_a = mock_font()
+
+        font_b = mock_font()
+        font_b.builder.setupGlyphOrder([".notdef", ".null", "A"])
+        font_b.builder.setupCharacterMap({65: "A"})
+        glyphs_b = {".notdef": test_glyph(), ".null": test_glyph(), "A": test_glyph()}
+        font_b.builder.setupGlyf(glyphs_b)
+        font_b.recalc_tables()
+
         self.diff = diff_glyphs(font_a, font_b)
-        missing = self.diff['missing']
+        missing = self.diff['missing']._data
         self.assertNotEqual(missing, [])
 
     def test_area(self):
@@ -217,38 +244,32 @@ class TestMarks(unittest.TestCase):
 
     def test_missing_base_mark(self):
 
-        font_a = mock_font(
-            glyphs=[('A', 100, 100), ('acutecomb', 0, 0),
-                    ('O', 100, 100)],
-            fea="""
+        font_a = mock_font()
+        fea="""
             markClass [acutecomb] <anchor 150 -10> @top;
 
             feature mark {
-                pos base [A O]
+                pos base [A V]
                  <anchor 85 354> mark @top;
             } mark;
             """
-        )
-        font_b = mock_font(
-            glyphs=[('A', 100, 100), ('acutecomb', 0, 0)]
-        )
-        marks_a = DumpMarks(font_a)
-        marks_b = DumpMarks(font_b)
+        font_a.builder.addOpenTypeFeatures(fea)
+        font_a.recalc_tables()
 
-        diff = diff_marks(font_a, font_b, marks_a.mark_table, marks_b.mark_table)
-        missing = diff['missing']
+        font_b = mock_font()
+        diff = diff_marks(font_a, font_b, font_a.marks, font_b.marks, 'marks')
+        missing = diff['missing']._data
         self.assertNotEqual(missing, [])
         # Diffenator will only return missing and new marks betweeen
         # matching glyph sets. If font_b is missing many glyphs which
         # have marks in font_a, these won't be reported. If the user
         # add the glyphs to font_b without the marks, then it will
         # get reported.
-        self.assertEqual(len(missing), 1)
+        self.assertEqual(len(missing), 2)
 
     def test_modified_base_mark(self):
-        font_a = mock_font(
-            glyphs=[('A', 100, 100), ('acutecomb', 0, 0)],
-            fea="""
+        font_a = mock_font()
+        fea="""
             markClass [acutecomb] <anchor 150 -10> @top;
 
             feature mark {
@@ -256,10 +277,10 @@ class TestMarks(unittest.TestCase):
                  <anchor 85 354> mark @top;
             } mark;
             """
-        )
-        font_b = mock_font(
-            glyphs=[('A', 100, 100), ('acutecomb', 0, 0)],
-            fea="""
+        font_a.builder.addOpenTypeFeatures(fea)
+        font_a.recalc_tables()
+        font_b = mock_font()
+        fea="""
             markClass [acutecomb] <anchor 150 -10> @top;
 
             feature mark {
@@ -267,19 +288,16 @@ class TestMarks(unittest.TestCase):
                  <anchor 65 354> mark @top;
             } mark;
             """
-        )
-        marks_a = DumpMarks(font_a)
-        marks_b = DumpMarks(font_b)
-
-        diff = diff_marks(font_a, font_b, marks_a.mark_table, marks_b.mark_table)
-        modified = diff['modified']
+        font_b.builder.addOpenTypeFeatures(fea)
+        font_b.recalc_tables()
+        diff = diff_marks(font_a, font_b, font_a.marks, font_b.marks, "marks")
+        modified = diff['modified']._data
         self.assertNotEqual(modified, [])
 
     def test_upm_scale_modified_marks(self):
-        font_a = mock_font(
-            attrs=[('head', 'unitsPerEm', 1000)],
-            glyphs=[('A', 100, 100), ('acutecomb', 0, 0)],
-            fea="""
+        font_a = mock_font()
+        font_a.builder.updateHead(unitsPerEm=1000)
+        fea="""
             markClass [acutecomb] <anchor 150 0> @top;
 
             feature mark {
@@ -287,11 +305,11 @@ class TestMarks(unittest.TestCase):
                  <anchor 100 300> mark @top;
             } mark;
             """
-        )
-        font_b = mock_font(
-            attrs=[('head', 'unitsPerEm', 2000)],
-            glyphs=[('A', 200, 200), ('acutecomb', 0, 0)],
-            fea="""
+        font_a.builder.addOpenTypeFeatures(fea)
+        font_a.recalc_tables()
+        font_b = mock_font()
+        font_b.builder.updateHead(unitsPerEm=2000)
+        fea="""
             markClass [acutecomb] <anchor 300 0> @top;
 
             feature mark {
@@ -299,43 +317,36 @@ class TestMarks(unittest.TestCase):
                  <anchor 200 600> mark @top;
             } mark;
             """
-        )
-        marks_a = DumpMarks(font_a)
-        marks_b = DumpMarks(font_b)
-
-        diff = diff_marks(font_a, font_b, marks_a.mark_table, marks_b.mark_table)
-        modified = diff['modified']
+        font_b.builder.addOpenTypeFeatures(fea)
+        font_b.recalc_tables()
+        diff = diff_marks(font_a, font_b, font_a.marks, font_b.marks, "marks")
+        modified = diff['modified']._data
         self.assertEqual(modified, [])
 
 
 class TestMkMks(unittest.TestCase):
 
     def test_missing_mkmks(self):
-        font_a = mock_font(
-            glyphs=[('acutecomb', 0, 0), ('gravecomb', 0, 0)],
-            fea="""
+        font_a = mock_font()
+        fea="""
             markClass [acutecomb gravecomb] <anchor 150 -10> @top;
 
-            feature mark {
+            feature mkmk {
                 pos mark @top
                  <anchor 85 354> mark @top;
-            } mark;
+            } mkmk;
             """
-        )
-        font_b = mock_font(
-            glyphs=[('acutecomb', 0, 0)]
-        )
-        marks_a = DumpMarks(font_a)
-        marks_b = DumpMarks(font_b)
+        font_a.builder.addOpenTypeFeatures(fea)
+        font_a.recalc_tables()
+        font_b = mock_font()
 
-        diff = diff_marks(font_a, font_b, marks_a.mkmk_table, marks_b.mkmk_table)
-        missing = diff['missing']
+        diff = diff_marks(font_a, font_b, font_a.mkmks, font_b.mkmks, 'mkmks')
+        missing = diff['missing']._data
         self.assertNotEqual(missing, [])
 
     def test_modified_mkmks(self):
-        font_a = mock_font(
-            glyphs=[('acutecomb', 0, 0), ('gravecomb', 0, 0)],
-            fea="""
+        font_a = mock_font()
+        fea="""
             markClass [acutecomb gravecomb] <anchor 150 -10> @top;
 
             feature mark {
@@ -343,10 +354,10 @@ class TestMkMks(unittest.TestCase):
                  <anchor 85 354> mark @top;
             } mark;
             """
-        )
-        font_b = mock_font(
-            glyphs=[('acutecomb', 0, 0), ('gravecomb', 0, 0)],
-            fea="""
+        font_a.builder.addOpenTypeFeatures(fea)
+        font_a.recalc_tables()
+        font_b = mock_font()
+        fea="""
             markClass [acutecomb gravecomb] <anchor 0 -10> @top;
 
             feature mark {
@@ -354,12 +365,10 @@ class TestMkMks(unittest.TestCase):
                  <anchor 85 354> mark @top;
             } mark;
             """
-        )
-        marks_a = DumpMarks(font_a)
-        marks_b = DumpMarks(font_b)
-
-        diff = diff_marks(font_a, font_b, marks_a.mkmk_table, marks_b.mkmk_table)
-        modified = diff['modified']
+        font_b.builder.addOpenTypeFeatures(fea)
+        font_b.recalc_tables()
+        diff = diff_marks(font_a, font_b, font_a.mkmks, font_b.mkmks, 'mkmks')
+        modified = diff['modified']._data
         self.assertNotEqual(modified, [])
         self.assertEqual(len(modified), 4)
 
@@ -367,64 +376,65 @@ class TestMkMks(unittest.TestCase):
 class TestKerns(unittest.TestCase):
 
     def test_missing_kerns(self):
-        font_a = mock_font(
-            glyphs=[('A', 50, 50), ('V', 50, 50), ('Y', 50, 50)],
-            fea="""
+        font_a = mock_font()
+        fea="""
                 feature kern {
                 pos A V -120;
-                pos Y A -120;} kern;
+                pos V A -120;} kern;
             """
-        )
-        font_b = mock_font(
-            glyphs=[('A', 50, 50), ('V', 50, 50)]
-        )
+        font_a.builder.addOpenTypeFeatures(fea)
+        font_a.recalc_tables()
+        font_b = mock_font()
         diff = diff_kerning(font_a, font_b)
-        missing = diff['missing']
+        missing = diff['missing']._data
         self.assertNotEqual(missing, [])
         # Missing and new kerns are only reported for matching glyphs
         # this is the same approach as the missing and new marks diff
-        self.assertEqual(len(missing), 1)
+        self.assertEqual(len(missing), 2)
 
     def test_modified_kerns(self):
-        font_a = mock_font(
-            glyphs=[('A', 50, 50), ('V', 50, 50)],
-            fea="""
+        font_a = mock_font()
+        fea="""
                 feature kern {
                 pos A V -120;} kern;
             """
-        )
-        font_b = mock_font(
-            glyphs=[('A', 50, 50), ('V', 50, 50)],
-            fea="""
+        font_a.builder.addOpenTypeFeatures(fea)
+        font_a.recalc_tables()
+
+        font_b = mock_font()
+        fea="""
                 feature kern {
                 pos A V -140;} kern;
             """
-        )
+        font_b.builder.addOpenTypeFeatures(fea)
+        font_b.recalc_tables()
         diff = diff_kerning(font_a, font_b)
-        modified = diff['modified']
+        modified = diff['modified']._data
         self.assertNotEqual(modified, [])
 
     def test_upm_scale_modified_kerns(self):
-        font_a = mock_font(
-            attrs=[('head', 'unitsPerEm', 1000)],
-            glyphs=[('A', 50, 50), ('V', 50, 50)],
-            fea="""
+        font_a = mock_font()
+        font_a.builder.updateHead(unitsPerEm=1000)
+        fea="""
                 feature kern {
                 pos A V -120;} kern;
             """
-        )
-        font_b = mock_font(
-            attrs=[('head', 'unitsPerEm', 2000)],
-            glyphs=[('A', 100, 100), ('V', 100, 100)],
-            fea="""
+        font_a.builder.addOpenTypeFeatures(fea)
+        font_a.recalc_tables()
+
+        font_b = mock_font()
+        font_b.builder.updateHead(unitsPerEm=2000)
+        fea="""
                 feature kern {
                 pos A V -240;} kern;
             """
-        )
+        font_b.builder.addOpenTypeFeatures(fea)
+        font_b.recalc_tables()
         diff = diff_kerning(font_a, font_b)
-        modified = diff['modified']
+        modified = diff['modified']._data
         self.assertEqual(modified, [])
 
 
 if __name__ == '__main__':
     unittest.main()
+

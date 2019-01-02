@@ -9,21 +9,19 @@ paths = ['path/to/font_a', 'path/to/font_b']
     (path/to/font_b, path/to/font_a),
 ]
 
-and run them through our main diff_fonts functions.
-
 This test is slow and should be run on challenging fonts.
 """
-from diffenator.diff import diff_fonts
-from diffenator.font import InputFont
-from diffenator.utils import vf_instance
-from diffenator.visualize import render_table
-from diffenator.glyphs import dump_glyphs
+from diffenator import CHOICES
+from diffenator.diff import DiffFonts
+from diffenator.font import DFont
 from itertools import permutations
 import collections
+import subprocess
 from glob import glob
 import os
 import unittest
-
+import tempfile
+import shutil
 
 class TestFunctionality(unittest.TestCase):
 
@@ -34,29 +32,36 @@ class TestFunctionality(unittest.TestCase):
 
     def test_diff(self):
         for font_a_path, font_b_path in self.font_path_combos:
-            font_a = InputFont(font_a_path)
-            font_b = InputFont(font_b_path)
-            diff = diff_fonts(font_a, font_b)
-            self.assertNotEqual(diff, collections.defaultdict(dict))
+            gif_dir = tempfile.mktemp()
+            subprocess.call([
+                "diffenator",
+                font_a_path,
+                font_b_path,
+                "-r", gif_dir])
+            gifs = [f for f in os.listdir(gif_dir) if f.endswith(".gif")]
+            self.assertNotEqual(gifs, [])
+            shutil.rmtree(gif_dir)
 
     def test_diff_vf_vs_static(self):
         font_a_path = os.path.join(self._path, 'data', 'vf_test', 'Fahkwang-VF.ttf')
         font_b_path = os.path.join(self._path, 'data', 'vf_test', 'Fahkwang-Light.ttf')
-        font_a = InputFont(font_a_path)
-        font_b = InputFont(font_b_path)
+        cmd = subprocess.check_output([
+            "diffenator",
+            font_a_path,
+            font_b_path
+        ])
 
-        font_a = vf_instance(font_a, 'Light')
-        diff = diff_fonts(font_a, font_b)
-        self.assertNotEqual(diff, collections.defaultdict(dict))
+        self.assertNotEqual(cmd, None)
 
-
-class TestVisualize(unittest.TestCase):
-    def test_viz(self):
-        font_path = os.path.join(os.path.dirname(__file__), "data", "Play-Regular.ttf")
-        font = InputFont(font_path)
-        glyphs = dump_glyphs(font)
-        img = render_table(font, glyphs)
-        self.assertNotEqual(img, None)
+    def test_dump(self):
+        font_path = os.path.join(self._path, 'data', 'Play-Regular.ttf')
+        for category in CHOICES:
+            cmd = subprocess.check_output([
+                "dumper",
+                font_path,
+                category,
+            ])
+            self.assertNotEqual(cmd, None)
 
 
 if __name__ == '__main__':
