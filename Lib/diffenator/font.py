@@ -24,6 +24,7 @@ from freetype import (
         FT_Set_Var_Design_Coordinates
 )
 import sys
+import logging
 try:
     # try and import unicodedata2 backport for py2.7.
     import unicodedata2 as uni
@@ -34,6 +35,9 @@ except ImportError:
 if sys.version_info.major == 3:
     unicode = str
 
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 class DFont(TTFont):
     """Container font for ttfont, freetype and hb fonts"""
@@ -102,7 +106,7 @@ class DFont(TTFont):
                 if axis in self.instance_coordinates:
                     self.instance_coordinates[axis] = axes[axis]
                 else:
-                    print("font has no axis called {}".format(axis))
+                    logger.info("font has no axis called {}".format(axis))
             self.recalc_tables()
 
             coords = []
@@ -116,7 +120,7 @@ class DFont(TTFont):
             self.hbfont.set_variations(self.instance_coordinates)
             self.hbfont.scale = (self.size, self.size)
         else:
-            print("Not vf")
+            logger.info("Not vf")
 
     def set_variations_from_static(self, dfont):
         """Set the variations of a variable font using the vals from a
