@@ -17,7 +17,11 @@ def render_string(font, string, features=None, pt_size=128):
             location += '{}={}, '.format(axis, val)
         cmd += ['--variations=%s' % location]
     if features:
-        cmd += ['--features=%s' % features]
+        # ignore aalt tag. This feat is used so users can access glyphs
+        # via a glyph pallette.
+        # https://typedrawers.com/discussion/1319/opentype-aalt-feature
+        # glyphsapp will autogen this feature
+        cmd += ['--features=%s' % ','.join(features).replace("aalt,", "")]
     cmd += [font.path, u'{}'.format(string)]
     try:
         img = StringIO(subprocess.check_output(cmd))

@@ -4,7 +4,7 @@ from distutils import log
 
 setup(
     name='fontdiffenator',
-    version='0.6.3',
+    version='0.6.4',
     author="Google Fonts Project Authors",
     description="Font regression tester for Google Fonts",
     url="https://github.com/googlefonts/diffenator",
