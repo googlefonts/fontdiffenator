@@ -17,7 +17,7 @@ Module to diff fonts.
 from __future__ import print_function
 import collections
 from diffenator.utils import render_string
-from diffenator import DiffTable
+from diffenator import DiffTable, TXTFormatter, MDFormatter
 import functools
 import os
 import time
@@ -109,21 +109,27 @@ class DiffFonts:
 
     def _to_report(self, limit=50, dst=None, r_type="txt"):
         """Output before and after report"""
-        report = []
+        reports = []
+
+        report_header = TXTFormatter() if r_type == "txt" else MDFormatter()
+        report_header.heading("Diffenator")
+        report_header.paragraph(("Displaying the {} most significant items in "
+            "each table. To increase use the '-ol' flag").format(limit))
+        reports.append(report_header.text)
         for table in self._data:
             for subtable in self._data[table]:
                 current_table = self._data[table][subtable]
                 if len(current_table) < 1:
                     continue
                 if r_type == "txt":
-                    report.append(current_table.to_txt(limit=limit))
+                    reports.append(current_table.to_txt(limit=limit))
                 elif r_type == "md":
-                    report.append(current_table.to_md(limit=limit))
+                    reports.append(current_table.to_md(limit=limit))
         if dst:
             with open(dst, 'w') as doc:
-                doc.write("\n\n".join(report))
+                doc.write("\n\n".join(reports))
         else:
-            return "\n\n".join(report)
+            return "\n\n".join(reports)
 
     def to_txt(self, limit=50, dst=None):
         """Output diff report as txt"""
