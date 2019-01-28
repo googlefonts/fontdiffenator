@@ -1,4 +1,4 @@
-__version__ = "0.6.4"
+__version__ = "0.6.5"
 import sys
 if sys.version_info[0] < 3 and sys.version_info[1] < 6:
     raise ImportError("Visualize module requires Python3.6+!")
@@ -70,12 +70,15 @@ class Tbl:
         str
         """
         report = formatter()
-        report.subsubheading(self.table_name)
 
         if strings_only and self.renderable:
+            report.subsubheading(self.table_name)
             string = ' '.join([r['string'] for r in self._data[:limit]])
             report.paragraph(string)
         else:
+            report.subsubheading("{}: {}".format(
+                self.table_name, len(self._data)
+            ))
             report.table_heading(self._report_columns)
             for row in self._data[:limit]:
                 culled_row = []
@@ -310,7 +313,7 @@ class Formatter:
         self._text.append('')
 
     def paragraph(self, string):
-        self._text.append(string)
+        self._text.append("{}\n".format(string))
 
     @property
     def text(self):
