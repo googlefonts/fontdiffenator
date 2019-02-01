@@ -24,12 +24,12 @@ Pair and class to class kerning are supported. The class kerns get flattened int
 
 Values by default are scaled in relation to the font's upm. This means we can easily compare fonts with differing upms. e.g
 
-font_a @1000upm
+font_after @1000upm
 
 - kern = pos A V -100;
 
 
-font_b @2000upm
+font_before @2000upm
 
 - kern = pos A V -200
 
@@ -75,11 +75,11 @@ $ pip install . # -e . for dev installation
 ## Usage:
 
 ```
-$ diffenator ./path/to/font_a.ttf ./path/to/font_b.ttf
+$ diffenator ./path/to/font_after.ttf ./path/to/font_before.ttf
 
 # Generate before and after gifs
 
-$ diffenator ./path/to/font_a.ttf ./path/to/font_b.ttf -r ./path/to/out_gifs
+$ diffenator ./path/to/font_after.ttf ./path/to/font_before.ttf -r ./path/to/out_gifs
 ```
 
 ## Python (Google fonts):
@@ -87,9 +87,9 @@ $ diffenator ./path/to/font_a.ttf ./path/to/font_b.ttf -r ./path/to/out_gifs
 ```
 >>> from diffenator import diff_fonts
 >>> from diffenator.font import InputFont
->>> font_a = InputFont('./path/to/font_a.ttf')
->>> font_b = InputFont('./path/to/font_b.ttf')
->>> diff_fonts(font_a, font_b)
+>>> font_after = InputFont('./path/to/font_after.ttf')
+>>> font_before = InputFont('./path/to/font_before.ttf')
+>>> diff_fonts(font_after, font_before)
 ...
 ```
 
