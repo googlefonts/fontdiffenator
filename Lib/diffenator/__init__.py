@@ -55,6 +55,9 @@ class Tbl:
     def to_md(self, limit=50, strings_only=False, dst=None):
         return self._report(MDFormatter, limit, strings_only, dst)
 
+    def to_html(self, limit=50, strings_only=False, dst=None):
+        return self._report(HTMLFormatter, limit, strings_only, dst)
+
     def _report(self, formatter, limit=50, strings_only=False, dst=None):
         """Generate a report for a table.
 
@@ -79,12 +82,14 @@ class Tbl:
             report.subsubheading("{}: {}".format(
                 self.table_name, len(self._data)
             ))
+            report.start_table()
             report.table_heading(self._report_columns)
             for row in self._data[:limit]:
                 culled_row = []
                 for name in self._report_columns:
                     culled_row.append(row[name])
                 report.table_row(culled_row)
+            report.close_table()
 
         if dst:
             with open(dst, 'w') as doc:
@@ -315,6 +320,12 @@ class Formatter:
     def paragraph(self, string):
         self._text.append("{}\n".format(string))
 
+    def start_table(self):
+        pass
+
+    def close_table(self):
+        pass
+
     @property
     def text(self):
         return '\n'.join(self._text)
@@ -371,4 +382,37 @@ class MDFormatter(Formatter):
         row = map(str, row)
         string = ' | '.join(row)
         self._text.append(string)
+
+
+class HTMLFormatter(Formatter):
+    """Formatter for HTML"""
+    def heading(self, string):
+        self._text.append("<h1>{}</h1>\n".format(string))
+
+    def subheading(self, string):
+        self._text.append("<h2>{}</h2>\n".format(string))
+
+    def subsubheading(self, string):
+        self._text.append("<h3>{}</h3>\n".format(string))
+
+    def start_table(self):
+        self._text.append("<table>")
+
+    def close_table(self):
+        self._text.append("</table>")
+
+    def table_heading(self, row):
+        result = ["<tr>"]
+        for cell in row:
+            result += ["<th>", cell, "</th>"]
+        result += ["</tr>"]
+        self._text.append(''.join(result))
+
+    def table_row(self, row):
+        result = ["<tr>"]
+        for cell in row:
+            result += ["<td>", str(cell), "</td>"]
+        result += ["</tr>"]
+        self._text.append(''.join(result))
+
 

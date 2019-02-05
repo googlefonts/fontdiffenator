@@ -17,7 +17,7 @@ Module to diff fonts.
 from __future__ import print_function
 import collections
 from diffenator.utils import render_string
-from diffenator import DiffTable, TXTFormatter, MDFormatter
+from diffenator import DiffTable, TXTFormatter, MDFormatter, HTMLFormatter
 import functools
 import os
 import time
@@ -111,7 +111,13 @@ class DiffFonts:
         """Output before and after report"""
         reports = []
 
-        report_header = TXTFormatter() if r_type == "txt" else MDFormatter()
+        if r_type == "txt":
+            report_header = TXTFormatter()
+        elif r_type == "md":
+            report_header = MDFormatter()
+        elif r_type == "html":
+            report_header = HTMLFormatter()
+
         report_header.heading("Diffenator")
         report_header.paragraph(("Displaying the {} most significant items in "
             "each table. To increase use the '-ol' flag").format(limit))
@@ -125,6 +131,8 @@ class DiffFonts:
                     reports.append(current_table.to_txt(limit=limit))
                 elif r_type == "md":
                     reports.append(current_table.to_md(limit=limit))
+                elif r_type == "html":
+                    reports.append(current_table.to_html(limit=limit))
         if dst:
             with open(dst, 'w') as doc:
                 doc.write("\n\n".join(reports))
@@ -138,6 +146,9 @@ class DiffFonts:
     def to_md(self, limit=50, dst=None):
         """Output diff report as md"""
         return self._to_report(limit=limit, dst=dst, r_type="md")
+
+    def to_html(self, limit=50, dst=None):
+        return self._to_report(limit=limit, dst=dst, r_type="html")
 
     def _serialise(self):
         """Serialiser for container data"""
