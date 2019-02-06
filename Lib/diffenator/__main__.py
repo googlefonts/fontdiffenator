@@ -60,8 +60,13 @@ def main():
 
     parser.add_argument('-ol', '--output-lines', type=int, default=50,
                         help="Amout of rows to report for each diff table")
-    parser.add_argument('-md', '--markdown', action='store_true',
+    formatter_group = parser.add_mutually_exclusive_group(required=False)
+    formatter_group.add_argument('-txt', '--txt', action='store_true', default=True,
+                        help="Output report as txt.")
+    formatter_group.add_argument('-md', '--markdown', action='store_true', default=False,
                         help="Output report as markdown.")
+    formatter_group.add_argument('-html', '--html', action='store_true', default=False,
+                        help="Output report as html.")
     parser.add_argument('-v', '--verbose', action='store_true',
                         help='Output verbose reports')
 
@@ -111,13 +116,16 @@ def main():
 
     diff = DiffFonts(font_before, font_after, diff_options)
 
+    if args.render_path:
+        diff.to_gifs(args.render_path)
+
     if args.markdown:
         print(diff.to_md(args.output_lines))
+    elif args.html:
+        print(diff.to_html(args.output_lines, image_dir=args.render_path))
     else:
         print(diff.to_txt(args.output_lines))
 
-    if args.render_path:
-        diff.to_gifs(args.render_path)
 
 
 if __name__ == '__main__':
