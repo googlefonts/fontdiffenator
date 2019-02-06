@@ -55,10 +55,12 @@ class Tbl:
     def to_md(self, limit=50, strings_only=False, dst=None):
         return self._report(MDFormatter, limit, strings_only, dst)
 
-    def to_html(self, limit=50, strings_only=False, dst=None):
-        return self._report(HTMLFormatter, limit, strings_only, dst)
+    def to_html(self, limit=50, strings_only=False, image=None,
+                dst=None):
+        return self._report(HTMLFormatter, limit, strings_only, image, dst)
 
-    def _report(self, formatter, limit=50, strings_only=False, dst=None):
+    def _report(self, formatter, limit=50, strings_only=False, image=None,
+                dst=None):
         """Generate a report for a table.
 
         Parameters
@@ -90,6 +92,8 @@ class Tbl:
                     culled_row.append(row[name])
                 report.table_row(culled_row)
             report.close_table()
+            if image:
+                report.img(image)
 
         if dst:
             with open(dst, 'w') as doc:
@@ -299,6 +303,9 @@ class Formatter:
     def __init__(self):
         self._text = []
 
+    def style(self):
+        pass
+
     def heading(self, string):
         raise NotImplementedError()
 
@@ -386,6 +393,31 @@ class MDFormatter(Formatter):
 
 class HTMLFormatter(Formatter):
     """Formatter for HTML"""
+
+    def style(self):
+        self._text.append(
+            """
+            <style>
+            html{font-family: sans-serif; padding: 10px;}
+
+            table{
+              font-family: arial, sans-serif;
+              border-collapse: collapse;
+              width: 100%;
+            }
+
+            td, th {
+              border: 1px solid #dddddd;
+              text-align: left;
+              padding: 8px;
+            }
+
+            tr:nth-child(even) {
+              background-color: #dddddd;
+              }
+            </style>
+            """
+        )
     def heading(self, string):
         self._text.append("<h1>{}</h1>\n".format(string))
 
@@ -414,5 +446,8 @@ class HTMLFormatter(Formatter):
             result += ["<td>", str(cell), "</td>"]
         result += ["</tr>"]
         self._text.append(''.join(result))
+
+    def img(self, path):
+        self._text.append("<img src='%s'>" % path)
 
 

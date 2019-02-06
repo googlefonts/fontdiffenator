@@ -116,15 +116,16 @@ def main():
 
     diff = DiffFonts(font_before, font_after, diff_options)
 
+    if args.render_path:
+        diff.to_gifs(args.render_path)
+
     if args.markdown:
         print(diff.to_md(args.output_lines))
     elif args.html:
-        print(diff.to_html(args.output_lines))
+        print(diff.to_html(args.output_lines, image_dir=args.render_path))
     else:
         print(diff.to_txt(args.output_lines))
 
-    if args.render_path:
-        diff.to_gifs(args.render_path)
 
 
 if __name__ == '__main__':

@@ -107,7 +107,7 @@ class DiffFonts:
                 img_path = os.path.join(dst, filename)
                 _table.to_gif(img_path)
 
-    def _to_report(self, limit=50, dst=None, r_type="txt"):
+    def _to_report(self, limit=50, dst=None, r_type="txt", image_dir=None):
         """Output before and after report"""
         reports = []
 
@@ -118,6 +118,7 @@ class DiffFonts:
         elif r_type == "html":
             report_header = HTMLFormatter()
 
+        report_header.style()
         report_header.heading("Diffenator")
         report_header.paragraph(("Displaying the {} most significant items in "
             "each table. To increase use the '-ol' flag").format(limit))
@@ -132,7 +133,16 @@ class DiffFonts:
                 elif r_type == "md":
                     reports.append(current_table.to_md(limit=limit))
                 elif r_type == "html":
-                    reports.append(current_table.to_html(limit=limit))
+                    if image_dir:
+                        image = os.path.join(image_dir, "%s_%s.gif" % (table, subtable))
+                        if os.path.isfile(image):
+                            reports.append(current_table.to_html(limit=limit,
+                                           image=image))
+                        else:
+                            reports.append(current_table.to_html(limit=limit))
+                    else:
+                        reports.append(current_table.to_html(limit=limit))
+
         if dst:
             with open(dst, 'w') as doc:
                 doc.write("\n\n".join(reports))
@@ -147,8 +157,9 @@ class DiffFonts:
         """Output diff report as md"""
         return self._to_report(limit=limit, dst=dst, r_type="md")
 
-    def to_html(self, limit=50, dst=None):
-        return self._to_report(limit=limit, dst=dst, r_type="html")
+    def to_html(self, limit=50, dst=None, image_dir=None):
+        return self._to_report(limit=limit, dst=dst, r_type="html",
+                               image_dir=image_dir)
 
     def _serialise(self):
         """Serialiser for container data"""
