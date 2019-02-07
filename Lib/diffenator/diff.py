@@ -133,13 +133,10 @@ class DiffFonts:
                 elif r_type == "md":
                     reports.append(current_table.to_md(limit=limit))
                 elif r_type == "html":
-                    if image_dir:
+                    if image_dir and current_table.renderable:
                         image = os.path.join(image_dir, "%s_%s.gif" % (table, subtable))
-                        if os.path.isfile(image):
-                            reports.append(current_table.to_html(limit=limit,
-                                           image=image))
-                        else:
-                            reports.append(current_table.to_html(limit=limit))
+                        reports.append(current_table.to_html(limit=limit,
+                                       image=image))
                     else:
                         reports.append(current_table.to_html(limit=limit))
 
