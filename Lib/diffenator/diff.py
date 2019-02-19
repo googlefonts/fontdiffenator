@@ -26,8 +26,8 @@ import logging
 __all__ = ['DiffFonts', 'diff_metrics', 'diff_kerning',
             'diff_marks', 'diff_mkmks', 'diff_attribs', 'diff_glyphs']
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger = logging.getLogger('fontdiffenator')
+
 
 def timer(method):
     def timed(*args, **kw):
@@ -348,6 +348,7 @@ def _modified_glyphs(glyphs_before, glyphs_after, thresh=0.00,
             font_before = glyphs_before[k]['glyph'].font
             font_after = glyphs_after[k]['glyph'].font
             glyph = glyphs_before[k]
+            logger.debug('Rendering {} {}'.format(glyph['glyph'].name, glyph['string']))
             diff = diff_rendering(font_before, font_after, glyph['string'], glyph['features'])
         else:
             # using abs does not take into consideration if a curve is reversed

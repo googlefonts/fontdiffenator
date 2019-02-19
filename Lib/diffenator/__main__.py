@@ -41,6 +41,7 @@ Output images:
 diffenator /path/to/font_before.ttf /path/to/font_after.ttf -r /path/to/img_dir
 """
 from argparse import RawTextHelpFormatter
+import logging
 from diffenator import CHOICES, __version__
 from diffenator.font import DFont
 from diffenator.diff import DiffFonts
@@ -69,7 +70,8 @@ def main():
                         help="Output report as html.")
     parser.add_argument('-v', '--verbose', action='store_true',
                         help='Output verbose reports')
-
+    parser.add_argument('-l', '--log-level', choices=('INFO', 'DEBUG', 'WARN'),
+                        default='INFO')
     parser.add_argument('-i', '--vf-instance', default='wght=400',
                         help='Set vf variations e.g "wght=400"')
 
@@ -89,6 +91,9 @@ def main():
     parser.add_argument('-r', '--render-path',
                         help="Path to generate before and after gifs to.")
     args = parser.parse_args()
+
+    logger = logging.getLogger("fontdiffenator")
+    logger.setLevel(args.log_level)
 
     diff_options = dict(
             marks_thresh=args.marks_thresh,
