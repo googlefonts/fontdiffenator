@@ -1,4 +1,4 @@
-__version__ = "0.7.6"
+__version__ = "0.7.7"
 import sys
 if sys.version_info[0] < 3 and sys.version_info[1] < 6:
     raise ImportError("Visualize module requires Python3.6+!")
@@ -12,6 +12,7 @@ import uharfbuzz as hb
 import os
 import shutil
 import tempfile
+import logging
 try:
     from StringIO import StringIO
 except ImportError:  # py3 workaround
@@ -28,6 +29,10 @@ CHOICES = [
     'glyphs',
     'kerns'
 ]
+
+logger = logging.getLogger("fontdiffenator")
+logger.setLevel(logging.INFO)
+
 
 class Tbl:
 

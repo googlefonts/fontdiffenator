@@ -4,7 +4,7 @@ import datetime
 import logging
 
 logging.basicConfig(level=logging.WARN)
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('fontdiffenator')
 
 
 def dump_nametable(font):

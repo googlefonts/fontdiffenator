@@ -36,8 +36,7 @@ if sys.version_info.major == 3:
     unicode = str
 
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger = logging.getLogger('fontdiffenator')
 
 class DFont(TTFont):
     """Container font for ttfont, freetype and hb fonts"""
