@@ -105,7 +105,10 @@ class DiffFonts:
                     continue
                 filename = _table.table_name.replace(" ", "_") + ".gif"
                 img_path = os.path.join(dst, filename)
-                _table.to_gif(img_path)
+                if table == "metrics":
+                    _table.to_gif(img_path, padding_characters="II")
+                else:
+                    _table.to_gif(img_path)
 
     def _to_report(self, limit=50, dst=None, r_type="txt", image_dir=None):
         """Output before and after report"""
