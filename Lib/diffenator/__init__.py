@@ -1,4 +1,4 @@
-__version__ = "0.7.8"
+__version__ = "0.7.9"
 import sys
 if sys.version_info[0] < 3 and sys.version_info[1] < 6:
     raise ImportError("Visualize module requires Python3.6+!")
@@ -106,7 +106,7 @@ class Tbl:
         return report.text
 
     def _to_png(self, font, font_position=None, dst=None,
-                limit=800, size=1500):
+                limit=800, size=1500, padding_characters=""):
         """Use HB, FreeType and Cairo to produce a png for a table.
 
         Parameters
@@ -169,8 +169,11 @@ class Tbl:
         x_pos = 20
         y_pos = 200
         for row in self._data[:limit]:
+            string = "{}{}{}".format(padding_characters,
+                                     row['string'],
+                                     padding_characters)
             buf = hb.Buffer.create()
-            buf.add_str(row['string'])
+            buf.add_str(string)
 
             buf.guess_segment_properties()
             try:
@@ -275,10 +278,12 @@ class DiffTable(Tbl):
         self._font_a = font_a
         self._font_b = font_b
 
-    def to_gif(self, dst):
+    def to_gif(self, dst, padding_characters=""):
 
-        img_a = self._to_png(self._font_a, "Before")
-        img_b = self._to_png(self._font_b, "After")
+        img_a = self._to_png(self._font_a, "Before",
+                             padding_characters=padding_characters)
+        img_b = self._to_png(self._font_b, "After",
+                             padding_characters=padding_characters)
 
         img_a.save(
             dst,
