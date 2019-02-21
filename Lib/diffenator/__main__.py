@@ -72,7 +72,7 @@ def main():
                         help='Output verbose reports')
     parser.add_argument('-l', '--log-level', choices=('INFO', 'DEBUG', 'WARN'),
                         default='INFO')
-    parser.add_argument('-i', '--vf-instance', default='wght=400',
+    parser.add_argument('-i', '--vf-instance',
                         help='Set vf variations e.g "wght=400"')
 
     parser.add_argument('--marks_thresh', type=int, default=0,
@@ -113,7 +113,7 @@ def main():
     elif not font_before.is_variable and font_after.is_variable:
         font_after.set_variations_from_static(font_before)
 
-    elif font_before.is_variable and font_after.is_variable:
+    elif font_before.is_variable and font_after.is_variable and args.vf_instance:
         variations = {s.split('=')[0]: float(s.split('=')[1]) for s
                       in args.vf_instance.split(", ")}
         font_before.set_variations(variations)
