@@ -93,7 +93,7 @@ class DiffFonts:
         serialised_data = self._serialise()
         return serialised_data
 
-    def to_gifs(self, dst):
+    def to_gifs(self, dst, limit=800):
         """output before and after gifs for table"""
         if not os.path.isdir(dst):
             os.mkdir(dst)
@@ -106,9 +106,9 @@ class DiffFonts:
                 filename = _table.table_name.replace(" ", "_") + ".gif"
                 img_path = os.path.join(dst, filename)
                 if table == "metrics":
-                    _table.to_gif(img_path, padding_characters="II")
+                    _table.to_gif(img_path, padding_characters="II", limit=limit)
                 else:
-                    _table.to_gif(img_path)
+                    _table.to_gif(img_path, limit=limit)
 
     def _to_report(self, limit=50, dst=None, r_type="txt", image_dir=None):
         """Output before and after report"""
