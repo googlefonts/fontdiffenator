@@ -1,4 +1,4 @@
-__version__ = "0.7.12"
+__version__ = "0.7.13"
 import sys
 if sys.version_info[0] < 3 and sys.version_info[1] < 6:
     raise ImportError("Visualize module requires Python3.6+!")
@@ -290,16 +290,18 @@ class DiffTable(Tbl):
         self._font_a = font_a
         self._font_b = font_b
 
-    def to_gif(self, dst, padding_characters=""):
+    def to_gif(self, dst, padding_characters="", limit=800):
 
         tab_width = max(self._tab_width(self._font_a),
                         self._tab_width(self._font_b))
         img_a = self._to_png(self._font_a, "Before",
                              tab_width=tab_width,
-                             padding_characters=padding_characters)
+                             padding_characters=padding_characters,
+                             limit=limit)
         img_b = self._to_png(self._font_b, "After",
                              tab_width=tab_width,
-                             padding_characters=padding_characters)
+                             padding_characters=padding_characters,
+                             limit=limit)
 
         img_a.save(
             dst,

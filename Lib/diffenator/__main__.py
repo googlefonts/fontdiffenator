@@ -122,7 +122,7 @@ def main():
     diff = DiffFonts(font_before, font_after, diff_options)
 
     if args.render_path:
-        diff.to_gifs(args.render_path)
+        diff.to_gifs(args.render_path, args.output_lines)
 
     if args.markdown:
         print(diff.to_md(args.output_lines))
