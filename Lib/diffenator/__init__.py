@@ -105,8 +105,28 @@ class Tbl:
                 doc.write("\n".join(report.text))
         return report.text
 
+    def _shape_string(self, font, string, ot_features):
+        buf = hb.Buffer.create()
+        buf.add_str(string)
+        buf.guess_segment_properties()
+        try:
+            features = {f: True for f in ot_features}
+            hb.shape(font.hbfont, buf, features)
+        except KeyError:
+            hb.shape(font.hbfont, buf)
+        return buf
+
+    def _tab_width(self, font, limit=800):
+        result = 0
+        for row in self._data[:limit]:
+            buf = self._shape_string(font, row['string'], row['features'])
+            adv = sum([i.x_advance for i in buf.glyph_positions])
+            if adv > result:
+                result = adv
+        return result + 300
+
     def _to_png(self, font, font_position=None, dst=None,
-                limit=800, size=1500, padding_characters=""):
+                limit=800, size=1500, tab_width=1500, padding_characters=""):
         """Use HB, FreeType and Cairo to produce a png for a table.
 
         Parameters
@@ -125,18 +145,19 @@ class Tbl:
         # A special mention to the individuals who maintain these packages. Using
         # these dependencies has sped up the process of creating diff images
         # significantly. It's an incredible age we live in.
-        tab = int(font.size / 25)
+        y_tab = int(1500 / 25)
+        x_tab = int(tab_width / 64)
         width, height = 1024, 200
 
+        cells_per_row = int((width - x_tab) / x_tab)
         # Compute height of image
-        x, y, baseline = 20, 0, 0
+        x, y, baseline = x_tab, 0, 0
+        for idx, row in enumerate(self._data[:limit]):
+            x += x_tab
 
-        for row in self._data[:limit]:
-            x += tab
-
-            if x > (width - 20):
-                y += tab
-                x = 20
+            if idx % cells_per_row == 0:
+                y += y_tab
+                x = x_tab
         height += y
         height += 100
 
@@ -150,14 +171,14 @@ class Tbl:
         # label image
         ctx.set_font_size(30)
         ctx.set_source_rgb(0.5, 0.5, 0.5)
-        ctx.move_to(20, 50)
+        ctx.move_to(x_tab, 50)
         ctx.show_text("{}: {}".format(self.table_name, len(self._data)))
-        ctx.move_to(20, 100)
+        ctx.move_to(x_tab, 100)
         if font_position:
             ctx.show_text("Font Set: {}".format(font_position))
         if len(self._data) > limit:
             ctx.set_font_size(20)
-            ctx.move_to(20, 150)
+            ctx.move_to(x_tab, 150)
             ctx.show_text("Warning: {} different items. Only showing most serious {}".format(
                 len(self._data), limit)
             )
@@ -165,23 +186,14 @@ class Tbl:
         hb.ot_font_set_funcs(font.hbfont)
 
         # Draw glyphs
-        x, y, baseline = 20, 200, 0
-        x_pos = 20
+        x, y, baseline = x_tab, 200, 0
+        x_pos = x_tab
         y_pos = 200
-        for row in self._data[:limit]:
+        for idx, row in enumerate(self._data[:limit]):
             string = "{}{}{}".format(padding_characters,
                                      row['string'],
                                      padding_characters)
-            buf = hb.Buffer.create()
-            buf.add_str(string)
-
-            buf.guess_segment_properties()
-            try:
-                features = {f: True for f in row['features']}
-                hb.shape(font.hbfont, buf, features)
-            except KeyError:
-                hb.shape(font.hbfont, buf)
-
+            buf = self._shape_string(font, string, row['features'])
             char_info = buf.glyph_infos
             char_pos = buf.glyph_positions
             for info, pos in zip(char_info, char_pos):
@@ -200,8 +212,8 @@ class Tbl:
                 x_pos += (pos.x_advance) / 64.
                 y_pos += (pos.y_advance) / 64.
 
-            x_pos += tab - (x_pos % tab)
-            if x_pos > (width - 20):
+            x_pos += x_tab - (x_pos % x_tab)
+            if idx % cells_per_row == 0:
                 # add label
                 if font_position:
                     ctx.set_source_rgb(0.5, 0.5, 0.5)
@@ -212,8 +224,8 @@ class Tbl:
                     ctx.set_source_rgb(0,0,0)
                     ctx.rotate(-1.5708)
                 # Start a new row
-                y_pos += tab
-                x_pos = 20
+                y_pos += y_tab
+                x_pos = x_tab
         Z.flush()
         if dst:
             Z.write_to_png(dst)
@@ -280,9 +292,13 @@ class DiffTable(Tbl):
 
     def to_gif(self, dst, padding_characters=""):
 
+        tab_width = max(self._tab_width(self._font_a),
+                        self._tab_width(self._font_b))
         img_a = self._to_png(self._font_a, "Before",
+                             tab_width=tab_width,
                              padding_characters=padding_characters)
         img_b = self._to_png(self._font_b, "After",
+                             tab_width=tab_width,
                              padding_characters=padding_characters)
 
         img_a.save(
@@ -304,7 +320,8 @@ class DFontTableIMG(DFontTable):
 
     def to_png(self, dst=None, limit=800):
         font = self._font
-        return self._to_png(font, dst=dst, limit=limit)
+        tab_width = self._tab_width(font, limit)
+        return self._to_png(font, dst=dst, limit=limit, tab_width=tab_width)
 
 
 class Formatter:
