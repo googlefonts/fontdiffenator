@@ -1,4 +1,4 @@
-__version__ = "0.7.12"
+__version__ = "0.7.13"
 import sys
 if sys.version_info[0] < 3 and sys.version_info[1] < 6:
     raise ImportError("Visualize module requires Python3.6+!")
