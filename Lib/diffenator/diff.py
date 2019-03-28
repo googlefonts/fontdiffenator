@@ -370,7 +370,10 @@ def diff_rendering(font_before, font_after, string, features):
     as a percentage"""
     img_before = render_string(font_before, string, features)
     img_after = render_string(font_after, string, features)
-    return _diff_images(img_before, img_after)
+    diff = _diff_images(img_before, img_after)
+    img_before.close()
+    img_after.close()
+    return diff
 
 
 def diff_area(area_before, area_after):
