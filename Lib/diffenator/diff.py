@@ -368,8 +368,18 @@ def _modified_glyphs(glyphs_before, glyphs_after, thresh=0.00,
 def diff_rendering(font_before, font_after, string, features):
     """Render a string for each font and return the different pixel count
     as a percentage"""
-    img_before = render_string(font_before, string, features)
-    img_after = render_string(font_after, string, features)
+    try:
+        img_before = render_string(font_before, string, features)
+        img_after = render_string(font_after, string, features)
+    except:
+        # hb-view on Linux will infrequently produce an out of memory error
+        # https://travis-ci.org/m4rc1e/fonts/builds/508961834. As a temp
+        # fix, we can add glyphs which trigger this error as a diff result.
+        # Ideally we will fix this in the future. I am not sure whether this
+        # error is part of harfbuzz or the memory consumption of this script
+        # (most probably the latter).
+        logger.info("hb-view: out of memory on string {}".format(string))
+        return 1.0
     return _diff_images(img_before, img_after)
 
 
