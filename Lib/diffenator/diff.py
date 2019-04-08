@@ -60,7 +60,7 @@ class DiffFonts:
         mkmks_thresh=0,
         metrics_thresh=0,
         kerns_thresh=0,
-        to_diff=set(["*"]),
+        to_diff=["*"],
         render_diffs=False,
     )
     def __init__(self, font_before, font_after, settings=None):
@@ -74,20 +74,32 @@ class DiffFonts:
                     continue
                 self._settings[key] = settings[key]
 
-        if {"names", "*"} >= self._settings["to_diff"]:
-            self.names()
-        if {"attribs", "*"} >= self._settings["to_diff"]:
-            self.attribs()
-        if {"glyphs", "*"} >= self._settings["to_diff"]:
-            self.glyphs(self._settings["glyphs_thresh"])
-        if {"kerns", "*"} >= self._settings["to_diff"]:
-            self.kerns(self._settings["kerns_thresh"])
-        if {"metrics", "*"} >= self._settings["to_diff"]:
-            self.metrics(self._settings["metrics_thresh"])
-        if {"marks", "*"} >= self._settings["to_diff"]:
-            self.marks(self._settings["marks_thresh"])
-        if {"mkmks", "*"} >= self._settings["to_diff"]:
-            self.mkmks(self._settings["mkmks_thresh"])
+        if "*" in self._settings["to_diff"]:
+            self.run_all_diffs()
+        else:
+            if "names" in self._settings["to_diff"]:
+                self.names()
+            if "attribs" in self._settings["to_diff"]:
+                self.attribs()
+            if "glyphs" in self._settings["to_diff"]:
+                self.glyphs(self._settings["glyphs_thresh"])
+            if "kerns" in self._settings["to_diff"]:
+                self.kerns(self._settings["kerns_thresh"])
+            if "metrics" in self._settings["to_diff"]:
+                self.metrics(self._settings["metrics_thresh"])
+            if "marks" in self._settings["to_diff"]:
+                self.marks(self._settings["marks_thresh"])
+            if "mkmks" in self._settings["to_diff"]:
+                self.mkmks(self._settings["mkmks_thresh"])
+
+    def run_all_diffs(self):
+        self.names()
+        self.attribs()
+        self.glyphs(self._settings["glyphs_thresh"])
+        self.kerns(self._settings["kerns_thresh"])
+        self.metrics(self._settings["metrics_thresh"])
+        self.marks(self._settings["marks_thresh"])
+        self.mkmks(self._settings["mkmks_thresh"])
 
     def to_dict(self):
         serialised_data = self._serialise()
