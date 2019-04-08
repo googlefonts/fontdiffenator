@@ -101,7 +101,7 @@ def main():
             kerns_thresh=args.kerns_thresh,
             glyphs_thresh=args.glyphs_thresh,
             metrics_thresh=args.metrics_thresh,
-            to_diff=set(args.to_diff),
+            to_diff=args.to_diff,
             render_diffs=args.render_diffs
     )
     font_before = DFont(args.font_before)

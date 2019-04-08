@@ -435,6 +435,24 @@ class TestKerns(unittest.TestCase):
         self.assertEqual(modified, [])
 
 
+class TestDiffFonts(unittest.TestCase):
+
+    def test_to_diff_categories(self):
+        font_a = mock_font()
+        font_b = mock_font()
+        diff = DiffFonts(font_a, font_b, settings=dict(to_diff=['names', 'attribs']))
+        self.assertEqual(len(diff._data.keys()), 2)
+
+        diff = DiffFonts(font_a, font_b, settings=dict(to_diff=['names']))
+        self.assertEqual(len(diff._data.keys()), 1)
+
+        diff = DiffFonts(font_a, font_b, settings=dict(to_diff=["*"]))
+        self.assertGreaterEqual(len(diff._data.keys()), 7)
+
+        diff = DiffFonts(font_a, font_b, settings=dict(to_diff=["*", "glyphs"]))
+        self.assertGreaterEqual(len(diff._data.keys()), 7)
+
+
 if __name__ == '__main__':
     unittest.main()
 
