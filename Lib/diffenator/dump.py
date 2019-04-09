@@ -288,6 +288,8 @@ def _flatten_pair_kerning(table, results):
 
         for record in pairset.PairValueRecord:
 
+            if not hasattr(record.Value1, "XAdvance"):
+                continue
             kern = (first_glyph, record.SecondGlyph, record.Value1.XAdvance)
 
             if kern not in seen:
