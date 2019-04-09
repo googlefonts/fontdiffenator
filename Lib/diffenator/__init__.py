@@ -89,14 +89,15 @@ class Tbl:
             report.subsubheading("{}: {}".format(
                 self.table_name, len(self._data)
             ))
-            report.start_table()
-            report.table_heading(self._report_columns)
-            for row in self._data[:limit]:
-                culled_row = []
-                for name in self._report_columns:
-                    culled_row.append(row[name])
-                report.table_row(culled_row)
-            report.close_table()
+            if self._report_columns:
+                report.start_table()
+                report.table_heading(self._report_columns)
+                for row in self._data[:limit]:
+                    culled_row = []
+                    for name in self._report_columns:
+                        culled_row.append(row[name])
+                    report.table_row(culled_row)
+                report.close_table()
             if image:
                 report.img(image)
 
