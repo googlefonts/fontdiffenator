@@ -602,9 +602,10 @@ class DumpAnchors:
         table = DFontTableIMG(self._font, name, renderable=True)
         for l_idx in range(len(anchors1)):
             for m_group in anchors1[l_idx]:
-
                 for anchor in anchors1[l_idx][m_group]:
                     if anc1_is_combining and not anchor['glyph'].combining:
+                        continue
+                    if m_group not in anchors2[l_idx]:
                         continue
                     for anchor2 in anchors2[l_idx][m_group]:
                         if anc2_is_combining and not anchor2['glyph'].combining:
