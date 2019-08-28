@@ -38,6 +38,19 @@ if sys.version_info.major == 3:
 
 logger = logging.getLogger('fontdiffenator')
 
+
+WIDTH_CLASS_TO_FVAR = {
+    1: 50, # UltraCondensed
+    2: 63, # ExtraCondensed
+    3: 75, # Condensed
+    4: 88, # SemiCondensed
+    5: 100, # Normal
+    6: 113, # SemiExpanded
+    7: 125, # Expanded
+    8: 150, # ExtraExpanded
+    9: 200, # UltraExpanded
+}
+
 class DFont(TTFont):
     """Container font for ttfont, freetype and hb fonts"""
     def __init__(self, path=None, lazy=False, size=1500):
@@ -127,7 +140,8 @@ class DFont(TTFont):
         variations = {}
         if self.is_variable:
             variations["wght"] = dfont.ttfont["OS/2"].usWeightClass
-            # TODO (M Foley) add wdth, slnt axes
+            variations["wdth"] = WIDTH_CLASS_TO_FVAR[dfont.ttfont["OS/2"].usWidthClass]
+            # TODO (M Foley) add slnt axes
             self.set_variations(variations)
 
     def recalc_tables(self):
