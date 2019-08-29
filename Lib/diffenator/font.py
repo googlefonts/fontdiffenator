@@ -151,7 +151,6 @@ class DFont(TTFont):
         self.glyphs = dump_glyphs(self)
         self.marks = anchors.marks_table
         self.mkmks = anchors.mkmks_table
-        self.glyph_metrics = dump_glyph_metrics(self)
         self.attribs = dump_attribs(self)
         self.names = dump_nametable(self)
         self.kerns = dump_kerning(self)

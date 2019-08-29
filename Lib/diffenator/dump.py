@@ -250,14 +250,26 @@ def dump_glyph_metrics(font):
     """
     table = DFontTableIMG(font, "metrics", renderable=True)
 
+    glyphset = font.ttfont.getGlyphSet()
     for name, glyph in font.glyphset.items():
         adv = font.ttfont["hmtx"][name][0]
-        try:
-            lsb = font.ttfont["glyf"][name].xMin
-            rsb = adv - font.ttfont['glyf'][name].xMax
-        except AttributeError:
-            lsb = 0
-            rsb = 0
+        if "glyf" in font.ttfont.keys():
+            try:
+                lsb = font.ttfont["glyf"][name].xMin
+                rsb = adv - font.ttfont['glyf'][name].xMax
+            except AttributeError:
+                lsb = 0
+                rsb = 0
+        elif "CFF " in font.ttfont.keys():
+            try:
+                bounds = font.ttfont["CFF "].cff.values()[0].CharStrings[name].calcBounds(glyphset)
+                lsb = bounds[0]
+                rsb = adv - bounds[-2]
+            except TypeError:
+                lsb = 0
+                rsb = 0
+        else:
+            raise Exception("Only ttf and otf fonts are supported")
         table.append({'glyph': glyph,
                 'lsb': lsb, 'rsb': rsb, 'adv': adv,
                 'string': glyph.characters,
