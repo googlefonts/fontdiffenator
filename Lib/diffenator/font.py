@@ -242,6 +242,7 @@ class Glyph:
         self.combining = True if characters and uni.combining(characters[0]) else False
         self.key = self.characters + ''.join(features)
         self.font = font
+        self.index = self.font.ttfont.getGlyphID(name)
 
     def __repr__(self):
         return self.name
