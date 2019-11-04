@@ -16,12 +16,13 @@ Module to diff fonts.
 """
 from __future__ import print_function
 import collections
-from diffenator.utils import render_string
 from diffenator import DiffTable, TXTFormatter, MDFormatter, HTMLFormatter
 import functools
 import os
 import time
 import logging
+from PIL import Image
+
 
 __all__ = ['DiffFonts', 'diff_metrics', 'diff_kerning',
             'diff_marks', 'diff_mkmks', 'diff_attribs', 'diff_glyphs']
@@ -349,49 +350,50 @@ def diff_glyphs(font_before, font_after,
 def _modified_glyphs(glyphs_before, glyphs_after, thresh=0.00,
                      upm_before=None, upm_after=None, scale_upms=False,
                      render_diffs=False):
-    if render_diffs:
-        logger.info('Rendering glyph differences. Be patient')
     shared = set(glyphs_before.keys()) & set(glyphs_after.keys())
 
     table = []
     for k in shared:
-        if scale_upms and upm_before and upm_b:
-            glyphs_before[k]['area'] = (glyphs_before[k]['area'] / upm_before) * upm_after
-            glyphs_after[k]['area'] = (glyphs_after[k]['area'] / upm_after) * upm_before
+        glyph_before = glyphs_before[k]
+        glyph_after = glyphs_after[k]
+        if all([scale_upms, upm_before, upm_after]):
+            glyph_before['area'] = (glyph_before['area'] / upm_before) * upm_after
+            glyph_after['area'] = (glyph_after['area'] / upm_after) * upm_before
 
         if render_diffs:
-            font_before = glyphs_before[k]['glyph'].font
-            font_after = glyphs_after[k]['glyph'].font
-            glyph = glyphs_before[k]
-            logger.debug('Rendering {} {}'.format(glyph['glyph'].name, glyph['string']))
-            diff = diff_rendering(font_before, font_after, glyph['string'], glyph['features'])
+            logger.debug('Rendering {}'.format(k))
+            diff = diff_rendering(glyph_before['glyph'], glyph_after['glyph'])
         else:
             # using abs does not take into consideration if a curve is reversed
-            area_before = abs(glyphs_before[k]['area'])
-            area_after = abs(glyphs_after[k]['area'])
+            area_before = abs(glyph_before['area'])
+            area_after = abs(glyph_after['area'])
             diff = diff_area(area_before, area_after)
         if diff > thresh:
-            glyph = glyphs_before[k]
+            glyph = glyph_before
             glyph['diff'] = round(diff, 4)
             table.append(glyph)
     return table
 
 
-def diff_rendering(font_before, font_after, string, features):
-    """Render a string for each font and return the different pixel count
+def diff_rendering(glyph_before, glyph_after, ft_size=1500):
+    """Diff two glyphs by rendering them. Return pixel differences
     as a percentage"""
-    try:
-        img_before = render_string(font_before, string, features)
-        img_after = render_string(font_after, string, features)
-    except:
-        # hb-view on Linux will infrequently produce an out of memory error
-        # https://travis-ci.org/m4rc1e/fonts/builds/508961834. As a temp
-        # fix, we can add glyphs which trigger this error as a diff result.
-        # Ideally we will fix this in the future. I am not sure whether this
-        # error is part of harfbuzz or the memory consumption of this script
-        # (most probably the latter).
-        logger.info("hb-view: out of memory on string {}".format(string))
-        return 1.0
+    font_before = glyph_before.font
+    font_before.ftfont.set_char_size(ft_size)
+    font_after = glyph_after.font
+    font_after.ftfont.set_char_size(ft_size)
+
+    # Image before
+    font_before.ftfont.load_glyph(glyph_before.index, flags=6)
+    bitmap_before = font_before.ftslot.bitmap
+    img_before = Image.new("L", (bitmap_before.width, bitmap_before.rows))
+    img_before.putdata(bitmap_before.buffer)
+
+    # Image after
+    font_after.ftfont.load_glyph(glyph_after.index, flags=6)
+    bitmap_after = font_after.ftslot.bitmap
+    img_after = Image.new("L", (bitmap_after.width, bitmap_after.rows))
+    img_after.putdata(bitmap_after.buffer)
     return _diff_images(img_before, img_after)
 
 
@@ -434,7 +436,10 @@ def _diff_images(img_before, img_after):
             else:
                 if data_before[ax + ay *width_before] != data_after[bx + by * width_after]:
                     diff += 1
-    return round(diff / float(width * height), 4)
+    try:
+        return round(diff / float(width * height), 4)
+    except ZeroDivisionError:
+        return 0.0
 
 
 @timer
