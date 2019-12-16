@@ -43,7 +43,7 @@ diffenator /path/to/font_before.ttf /path/to/font_after.ttf -r /path/to/img_dir
 from argparse import RawTextHelpFormatter
 import logging
 from diffenator import CHOICES, __version__
-from diffenator.font import DFont
+from diffenator.font import DFont, font_matcher
 from diffenator.diff import DiffFonts
 import argparse
 
@@ -73,6 +73,7 @@ def main():
     parser.add_argument('-l', '--log-level', choices=('INFO', 'DEBUG', 'WARN'),
                         default='INFO')
     parser.add_argument('-i', '--vf-instance',
+                        default=None,
                         help='Set vf variations e.g "wght=400"')
 
     parser.add_argument('--marks_thresh', type=int, default=0,
@@ -106,18 +107,7 @@ def main():
     )
     font_before = DFont(args.font_before)
     font_after = DFont(args.font_after)
-
-    if font_before.is_variable and not font_after.is_variable:
-        font_before.set_variations_from_static(font_after)
-
-    elif not font_before.is_variable and font_after.is_variable:
-        font_after.set_variations_from_static(font_before)
-
-    elif font_before.is_variable and font_after.is_variable and args.vf_instance:
-        variations = {s.split('=')[0]: float(s.split('=')[1]) for s
-                      in args.vf_instance.split(", ")}
-        font_before.set_variations(variations)
-        font_after.set_variations(variations)
+    font_matcher(font_before, font_after, args.vf_instance)
 
     diff = DiffFonts(font_before, font_after, diff_options)
 

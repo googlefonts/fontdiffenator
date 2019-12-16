@@ -108,6 +108,7 @@ class DFont(TTFont):
 
     def set_variations(self, axes):
         """Instantiate a ttfont VF with axes vals"""
+        logger.debug("Instantiating {} using {}".format(self, axes))
         if self.is_variable:
             font = instantiateVariableFont(self._src_ttfont, axes, inplace=False)
             self.ttfont = copy(font)
@@ -249,4 +250,21 @@ class Glyph:
 
     def __str__(self):
         return self.name
+
+
+def font_matcher(font_before, font_after, axes=None):
+    """Instantiate a variable font so it matches a static font. If two
+    variable fonts and an axes dict is provided, instantiate both
+    variable fonts using the axes dict."""
+    if font_before.is_variable and not font_after.is_variable:
+        font_before.set_variations_from_static(font_after)
+
+    elif not font_before.is_variable and font_after.is_variable:
+        font_after.set_variations_from_static(font_before)
+
+    elif font_before.is_variable and font_after.is_variable and axes:
+        variations = {s.split('=')[0]: float(s.split('=')[1]) for s
+                      in axes.split(", ")}
+        font_before.set_variations(variations)
+        font_after.set_variations(variations)
 
