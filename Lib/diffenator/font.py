@@ -141,6 +141,13 @@ class DFont(TTFont):
         variations = {}
         if self.is_variable:
             variations["wght"] = dfont.ttfont["OS/2"].usWeightClass
+            # Google Fonts used to set the usWeightClass of Thin static
+            # fonts to 250 and the ExtraLight to 275. Override these
+            # values with 100 and 200.
+            if variations["wght"] == 250:
+                variations["wght"] = 100
+            if variations["wght"] == 275:
+                variations["wght"] = 200
             variations["wdth"] = WIDTH_CLASS_TO_FVAR[dfont.ttfont["OS/2"].usWidthClass]
             # TODO (M Foley) add slnt axes
             self.set_variations(variations)
