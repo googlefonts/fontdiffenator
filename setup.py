@@ -7,7 +7,7 @@ setup(
     version='0.9.1',
     author="Google Fonts Project Authors",
     description="Font regression tester for Google Fonts",
-    url="https://github.com/googlefonts/diffenator",
+    url="https://github.com/googlefonts/fontdiffenator",
     license="Apache Software License 2.0",
     package_dir={"": "Lib"},
     packages=find_packages("Lib"),
