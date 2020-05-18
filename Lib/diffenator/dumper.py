@@ -51,7 +51,10 @@ def main():
                       in args.vf_instance.split(", ")}
         font.set_variations(variations)
 
-    table = getattr(font, args.dump)
+    table = getattr(font, args.dump, False)
+    if not table:
+        print(("Font doesn't have {} table".format(args.dump)))
+        exit()
     report_len = len(table)
 
     if args.markdown:
