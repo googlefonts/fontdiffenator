@@ -1,6 +1,7 @@
 """Module for DFont"""
 from fontTools.misc.py23 import unichr
-from fontTools.ttLib import TTFont
+from fontTools.ttLib import TTFont, newTable
+from fontTools.pens.ttGlyphPen import TTGlyphPen
 from fontTools.varLib.mutator import instantiateVariableFont
 from diffenator.hbinput import HbInputGenerator
 from diffenator.dump import (
@@ -56,6 +57,18 @@ class DFont(TTFont):
     def __init__(self, path=None, lazy=False, size=1500):
         self.path = path
         self.ttfont = TTFont(self.path)
+
+        has_outlines = self.ttfont.has_key("glyf") or self.ttfont.has_key("CFF ")
+        if not has_outlines:
+            # Create faux empty glyf table with empty glyphs to make
+            # it a valid font, e.g. for old-style CBDT/CBLC fonts
+            logger.warning("No outlines present, treating {} as bitmap font".format(self.path))
+            self.ttfont["glyf"] = newTable("glyf")
+            self.ttfont["glyf"].glyphs = {}
+            pen = TTGlyphPen({})
+            for name in self.ttfont.getGlyphOrder():
+                self.ttfont["glyf"].glyphs[name] = pen.glyph()
+
         self._src_ttfont = TTFont(self.path)
         self.glyphset = None
         self.recalc_glyphset()
@@ -69,7 +82,8 @@ class DFont(TTFont):
         self.ftslot = self.ftfont.glyph
 
         self.size = size
-        self.ftfont.set_char_size(self.size)
+        if self.ftfont.is_scalable:
+            self.ftfont.set_char_size(self.size)
 
         with open(self.path, 'rb') as fontfile:
             self._fontdata = fontfile.read()
