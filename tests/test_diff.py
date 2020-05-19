@@ -1,7 +1,6 @@
 from copy import copy
 import unittest
 from mockfont import mock_font, test_glyph
-from diffenator.dump import DumpAnchors
 from diffenator.diff import (
     DiffFonts,
     diff_nametable,
