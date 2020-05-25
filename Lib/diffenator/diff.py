@@ -433,20 +433,31 @@ def diff_area(area_before, area_after):
 def _diff_images(img_before, img_after):
     """Compare two rendered images and return the ratio of changed
     pixels.
-
     TODO (M FOLEY) Crop images so there are no sidebearings to glyphs"""
-    pixels1 = img_before.convert('L').getdata()
-    pixels2 = img_after.convert('L').getdata()
-    pixels = zip(pixels1, pixels2)
+    width_before, height_before = img_before.size
+    width_after, height_after = img_after.size
+    data_before = img_before.getdata()
+    data_after = img_after.getdata()
+
+    width, height = max(width_before, width_after), max(height_before, height_after)
+    offset_ax = (width - width_before) // 2
+    offset_ay = (height - height_before) // 2
+    offset_bx = (width - width_after) // 2
+    offset_by = (height - height_after) // 2
 
     diff = 0
-    for px1, px2 in pixels:
-        if px1 is not px2:
-            diff += 1
-    pixel_count = 1.0 * img_before.size[0] * img_before.size[1]
-
+    for y in range(height):
+        for x in range(width):
+            ax, ay = x - offset_ax, y - offset_ay
+            bx, by = x - offset_bx, y - offset_by
+            if (ax < 0 or bx < 0 or ax >= width_before or bx >= width_after or
+                ay < 0 or by < 0 or ay >= height_before or by >= height_after):
+                diff += 1
+            else:
+                if data_before[ax + ay *width_before] != data_after[bx + by * width_after]:
+                    diff += 1
     try:
-        return round(diff / pixel_count, 4)
+        return round(diff / float(width * height), 4)
     except ZeroDivisionError:
         return 0.0
 
