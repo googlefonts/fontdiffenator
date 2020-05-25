@@ -16,12 +16,11 @@ Module to diff fonts.
 """
 from __future__ import print_function
 import collections
-from diffenator import DiffTable, TXTFormatter, MDFormatter, HTMLFormatter
+from diffenator import DiffTable, TXTFormatter, MDFormatter, HTMLFormatter, read_cbdt
 import os
 import time
 import logging
 from PIL import Image
-from . import read_cbdt
 
 
 __all__ = ['DiffFonts', 'diff_metrics', 'diff_kerning',
