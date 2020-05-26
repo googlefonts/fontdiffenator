@@ -1,17 +1,15 @@
 __version__ = "0.9.1"
+
+import io
 import sys
 if sys.version_info[0] < 3 and sys.version_info[1] < 6:
     raise ImportError("Visualize module requires Python3.6+!")
 from array import array
 from PIL import Image
-from ctypes import cast, memmove, CDLL, c_void_p, c_int
-from sys import byteorder
 from cairo import Context, ImageSurface, FORMAT_A8, FORMAT_ARGB32
 from freetype.raw import *
 import uharfbuzz as hb
 import os
-import shutil
-import tempfile
 import logging
 try:
     from StringIO import StringIO
@@ -134,9 +132,9 @@ class Tbl:
         ----------
         font: DFont
         font_position: str
-            Label indicating which font has been used. 
+            Label indicating which font has been used.
         dst: str
-            Path to output image. If no path is given, return in-memory 
+            Path to output image. If no path is given, return in-memory
         """
         # TODO (M Foley) better packaging for pycairo, freetype-py
         # and uharfbuzz.
@@ -198,7 +196,7 @@ class Tbl:
             char_info = buf.glyph_infos
             char_pos = buf.glyph_positions
             for info, pos in zip(char_info, char_pos):
-                gid = info.codepoint            
+                gid = info.codepoint
                 font.ftfont.load_glyph(gid, flags=6)
                 bitmap = font.ftslot.bitmap
 
@@ -284,15 +282,39 @@ def _make_image_surface(bitmap, copy=True):
 
 
 class DiffTable(Tbl):
-
     def __init__(self, table_name, font_a, font_b,
                  data=None, renderable=False):
         super(DiffTable, self).__init__(table_name, data, renderable=renderable)
         self._font_a = font_a
         self._font_b = font_b
 
-    def to_gif(self, dst, padding_characters="", limit=800):
+    def to_cbdt_gif(self, dst):
+        font_a_images = read_cbdt(self._font_a.ttfont)
+        font_b_images = read_cbdt(self._font_b.ttfont)
 
+        for element in self._data:
+            key_before = element["glyph before"]
+            key_after = element["glyph after"]
+
+            image_1 = font_a_images[key_before]
+            image_1_gif = Image.new('RGBA', image_1.size, (255, 255, 255))
+            image_1_gif.paste(image_1, image_1)
+            image_1_gif = image_1_gif.convert('RGB').convert('P', palette=Image.ADAPTIVE)
+
+            image_2 = font_b_images[key_after]
+            image_2_gif = Image.new('RGBA', image_2.size, (255, 255, 255))
+            image_2_gif.paste(image_2, image_2)
+            image_2_gif = image_2_gif.convert('RGB').convert('P', palette=Image.ADAPTIVE)
+
+            img_path = os.path.join(dst, f"{key_before}.gif")
+            image_1_gif.save(img_path,
+                             save_all=True,
+                             append_images=[image_2_gif],
+                             duration=1000,
+                             loop=0
+            )
+
+    def to_gif(self, dst, padding_characters="", limit=800):
         tab_width = max(self._tab_width(self._font_a),
                         self._tab_width(self._font_b))
         img_a = self._to_png(self._font_a, "Before",
@@ -308,9 +330,10 @@ class DiffTable(Tbl):
             dst,
             save_all=True,
             append_images=[img_b],
-            loop=10000,
-            duration=1000
+            duration=1000,
+            loop=0
         )
+
 
 class DFontTable(Tbl):
 
@@ -480,4 +503,11 @@ class HTMLFormatter(Formatter):
     def img(self, path):
         self._text.append("<img src='%s'>" % path)
 
-
+def read_cbdt(ttfont):
+    cbdt_glyphs = {}
+    if ttfont.has_key("CBDT"):
+        cbdt = ttfont["CBDT"]
+        for strike_data in cbdt.strikeData:
+            for key, data in strike_data.items():
+                cbdt_glyphs[key] = Image.open(io.BytesIO(data.imageData)).convert("RGBA")
+    return cbdt_glyphs
