@@ -197,7 +197,7 @@ class DFont(TTFont):
                     weight_class = 100
                 if weight_class == 275:
                     weight_class = 200
-                variation["wght"] = weight_class
+                variations["wght"] = weight_class
 
             # wdth
             # We cannot simply use OS/2.usWidthClass since Google Fonts
