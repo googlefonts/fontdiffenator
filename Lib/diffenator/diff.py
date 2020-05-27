@@ -382,7 +382,6 @@ def _modified_glyphs(glyphs_before, glyphs_after, thresh=0.00,
             glyph_after['area'] = (glyph_after['area'] / upm_after) * upm_before
 
         if render_diffs:
-            logger.debug('Rendering {}'.format(k))
             diff = diff_rendering(glyph_before['glyph'], glyph_after['glyph'])
         else:
             # using abs does not take into consideration if a curve is reversed

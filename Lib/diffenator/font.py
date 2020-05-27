@@ -149,7 +149,7 @@ class DFont(TTFont):
 
     def set_variations(self, axes):
         """Instantiate a ttfont VF with axes vals"""
-        logger.debug("Instantiating {} using {}".format(self, axes))
+        logger.debug("Setting variations to {}".format(axes))
         if self.is_variable:
             font = instantiateVariableFont(self._src_ttfont, axes, inplace=False)
             self.ttfont = copy(font)
@@ -201,12 +201,17 @@ class DFont(TTFont):
             subfamilyname = f"{family_name_width} {subfamilyname}"
 
         if subfamilyname in self.instances_coordinates:
+            logger.debug(f"Instance name '{subfamilyname}' matches static font "
+                "subfamily names. Setting variations using this instance.")
             variations = self.instances_coordinates[subfamilyname]
             self.set_variations(variations)
             return
 
         # if the font doesn't contain an instance name which matches the
         # static font, infer the correct values
+        logger.debug(f"Font does not contain an instance name which matches "
+            f"static font subfamily names '{subfamilyname}'. Inferring "
+            "values instead.")
         variations = {}
         # wght
         parsed_weight = find_token(
@@ -242,11 +247,7 @@ class DFont(TTFont):
             width_class = static_font.ttfont["OS/2"].usWidthClass
             variations["wdth"] = WIDTH_CLASS_TO_FVAR[width_class]
         # TODO (M Foley) add slnt axes
-
-        # slnt/ital
-
-
-            self.set_variations(variations)
+        self.set_variations(variations)
 
     def recalc_tables(self):
         """Recalculate DFont tables"""
