@@ -87,11 +87,11 @@ $ diffenator ./path/to/font_before.ttf ./path/to/font_after.ttf -r ./path/to/out
 ## Python (Google fonts):
 
 ```
->>> from diffenator import diff_fonts
->>> from diffenator.font import InputFont
->>> font_before = InputFont('./path/to/font_before.ttf')
->>> font_after = InputFont('./path/to/font_after.ttf')
->>> diff_fonts(font_before, font_after)
+>>> from diffenator import DiffFonts
+>>> from diffenator.font import DFont
+>>> font_before = DFont('./path/to/font_before.ttf')
+>>> font_after = DFont('./path/to/font_after.ttf')
+>>> diff = DiffFonts(font_before, font_after)
 ...
 ```
 
