@@ -40,16 +40,40 @@ if sys.version_info.major == 3:
 logger = logging.getLogger('fontdiffenator')
 
 
+WEIGHT_NAME_TO_FVAR = {
+    "Thin": 100,
+    "ExtraLight": 200,
+    "Light": 300,
+    "Regular": 400,
+    "Medium": 500,
+    "SemiBold": 600,
+    "Bold": 700,
+    "ExtraBold": 800,
+    "Black": 900
+}
+
 WIDTH_CLASS_TO_FVAR = {
     1: 50, # UltraCondensed
-    2: 63, # ExtraCondensed
+    2: 62.5, # ExtraCondensed
     3: 75, # Condensed
-    4: 88, # SemiCondensed
+    4: 87.5, # SemiCondensed
     5: 100, # Normal
-    6: 113, # SemiExpanded
+    6: 112.5, # SemiExpanded
     7: 125, # Expanded
     8: 150, # ExtraExpanded
     9: 200, # UltraExpanded
+}
+
+WIDTH_NAME_TO_FVAR = {
+    "UltraCondensed": 50,
+    "ExtraCondensed": 62.5,
+    "Condensed": 75,
+    "SemiCondensed": 87.5,
+    "Normal": 100,
+    "SemiExpanded": 112.5,
+    "Expanded": 125,
+    "ExtraExpanded": 150,
+    "UltraExpanded": 200
 }
 
 class DFont(TTFont):
@@ -150,19 +174,45 @@ class DFont(TTFont):
             logger.info("Not vf")
 
     def set_variations_from_static(self, dfont):
-        """Set the variations of a variable font using the vals from a
-        static font"""
+        """Set the variation of a variable font using a static font.
+        The static font's filename will be used first to determine coordinates.
+        If values cannot be parsed from the filename, use values in the static
+        font's OS/2 table."""
         variations = {}
         if self.is_variable:
-            variations["wght"] = dfont.ttfont["OS/2"].usWeightClass
-            # Google Fonts used to set the usWeightClass of Thin static
-            # fonts to 250 and the ExtraLight to 275. Override these
-            # values with 100 and 200.
-            if variations["wght"] == 250:
-                variations["wght"] = 100
-            if variations["wght"] == 275:
-                variations["wght"] = 200
-            variations["wdth"] = WIDTH_CLASS_TO_FVAR[dfont.ttfont["OS/2"].usWidthClass]
+            # wght
+            parsed_weight = find_token(
+                os.path.basename(dfont.path),
+                list(WEIGHT_NAME_TO_FVAR.keys())
+            )
+            if parsed_weight:
+                variations["wght"] = WEIGHT_NAME_TO_FVAR[parsed_weight]
+            else:
+                logger.debug(f"Couldn't parse weight value from {dfont.path}")
+                weight_class = dfont.ttfont["OS/2"].usWeightClass
+                # Google Fonts used to set the usWeightClass of Thin static
+                # fonts to 250 and the ExtraLight to 275. Override these
+                # values with 100 and 200.
+                if weight_class == 250:
+                    weight_class = 100
+                if weight_class == 275:
+                    weight_class = 200
+                variation["wght"] = weight_class
+
+            # wdth
+            # We cannot simply use OS/2.usWidthClass since Google Fonts
+            # releases Condensed styles as new families.These new families
+            # have a usWidthClass of 5 (Normal).
+            parsed_width = find_token(
+                os.path.basename(dfont.path),
+                list(WIDTH_NAME_TO_FVAR.keys())
+            )
+            if parsed_width:
+                variations["wdth"] = WIDTH_NAME_TO_FVAR[parsed_width]
+            else:
+                logger.debug(f"Couldn't parse weight value from {dfont.path}")
+                width_class = dfont.ttfont["OS/2"].usWidthClass
+                variations["wdth"] = WIDTH_CLASS_TO_FVAR[width_class]
             # TODO (M Foley) add slnt axes
             self.set_variations(variations)
 
@@ -271,6 +321,18 @@ class Glyph:
 
     def __str__(self):
         return self.name
+
+
+def find_token(string, tokens):
+    """Find the largest token within a string e.g
+
+    > find_token("aab", ["a, "aa",..])
+    'aa'"""
+    tokens = sorted(tokens, key=lambda k: len(k), reverse=True)
+    for token in tokens:
+        if token in string:
+            return token
+    return None
 
 
 def font_matcher(font_before, font_after, axes=None):
