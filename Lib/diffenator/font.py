@@ -120,9 +120,12 @@ class DFont(TTFont):
             self.recalc_tables()
 
     def _get_instances_coordinates(self):
+        results = {}
         if self.is_variable:
-            return [i.coordinates for i in self._src_ttfont["fvar"].instances]
-        return None
+            for inst in self._src_ttfont['fvar'].instances:
+                inst_name = self._src_ttfont['name'].getName(inst.subfamilyNameID, 3, 1, 1033).toUnicode()
+                results[inst_name] = inst.coordinates
+        return results
 
     def _get_dflt_instance_coordinates(self):
         if self.is_variable:
@@ -146,7 +149,7 @@ class DFont(TTFont):
 
     def set_variations(self, axes):
         """Instantiate a ttfont VF with axes vals"""
-        logger.debug("Instantiating {} using {}".format(self, axes))
+        logger.debug("Setting variations to {}".format(axes))
         if self.is_variable:
             font = instantiateVariableFont(self._src_ttfont, axes, inplace=False)
             self.ttfont = copy(font)
@@ -173,48 +176,78 @@ class DFont(TTFont):
         else:
             logger.info("Not vf")
 
-    def set_variations_from_static(self, dfont):
-        """Set the variation of a variable font using a static font.
-        The static font's filename will be used first to determine coordinates.
-        If values cannot be parsed from the filename, use values in the static
-        font's OS/2 table."""
-        variations = {}
-        if self.is_variable:
-            # wght
-            parsed_weight = find_token(
-                os.path.basename(dfont.path),
-                list(WEIGHT_NAME_TO_FVAR.keys())
-            )
-            if parsed_weight:
-                variations["wght"] = WEIGHT_NAME_TO_FVAR[parsed_weight]
-            else:
-                logger.debug(f"Couldn't parse weight value from {dfont.path}")
-                weight_class = dfont.ttfont["OS/2"].usWeightClass
-                # Google Fonts used to set the usWeightClass of Thin static
-                # fonts to 250 and the ExtraLight to 275. Override these
-                # values with 100 and 200.
-                if weight_class == 250:
-                    weight_class = 100
-                if weight_class == 275:
-                    weight_class = 200
-                variations["wght"] = weight_class
+    def set_variations_from_static(self, static_font):
+        """Set VF font variations so they match a static font."""
+        if not self.is_variable:
+            raise Exception("Not a variable font")
 
-            # wdth
-            # We cannot simply use OS/2.usWidthClass since Google Fonts
-            # releases Condensed styles as new families.These new families
-            # have a usWidthClass of 5 (Normal).
-            parsed_width = find_token(
-                os.path.basename(dfont.path),
-                list(WIDTH_NAME_TO_FVAR.keys())
-            )
-            if parsed_width:
-                variations["wdth"] = WIDTH_NAME_TO_FVAR[parsed_width]
-            else:
-                logger.debug(f"Couldn't parse weight value from {dfont.path}")
-                width_class = dfont.ttfont["OS/2"].usWidthClass
-                variations["wdth"] = WIDTH_CLASS_TO_FVAR[width_class]
-            # TODO (M Foley) add slnt axes
+        # Use an fvar instance if its name matches the static font's
+        # typographic subfamily name or subfamily name
+        subfamilyname = static_font.ttfont['name'].getName(2, 3, 1, 1033)
+        typosubfamilyname = static_font.ttfont['name'].getName(17, 3, 1, 1033)
+
+        subfamilyname = typosubfamilyname.toUnicode() if typosubfamilyname else \
+            subfamilyname.toUnicode()
+
+        # The Google Fonts v1 api can only handle the wght axis. For families
+        # which have widths, we have to release them as a seperate family,
+        # https://fonts.google.com/?query=condensed
+        # To distinguish the width family from the normal family, we append
+        # the width to the family name e.g Roboto Condensed
+        filename = os.path.basename(static_font.path)
+        family_name = filename.split("-")[0]
+        family_name_width = find_token(family_name, list(WIDTH_NAME_TO_FVAR.keys()))
+        if family_name_width:
+            subfamilyname = f"{family_name_width} {subfamilyname}"
+
+        if subfamilyname in self.instances_coordinates:
+            logger.debug(f"Instance name '{subfamilyname}' matches static font "
+                "subfamily names. Setting variations using this instance.")
+            variations = self.instances_coordinates[subfamilyname]
             self.set_variations(variations)
+            return
+
+        # if the font doesn't contain an instance name which matches the
+        # static font, infer the correct values
+        logger.debug(f"Font does not contain an instance name which matches "
+            f"static font subfamily names '{subfamilyname}'. Inferring "
+            "values instead.")
+        variations = {}
+        # wght
+        parsed_weight = find_token(
+            os.path.basename(static_font.path),
+            list(WEIGHT_NAME_TO_FVAR.keys())
+        )
+        if parsed_weight:
+            variations["wght"] = WEIGHT_NAME_TO_FVAR[parsed_weight]
+        else:
+            logger.debug(f"Couldn't parse weight value from {dfont.path}")
+            weight_class = static_font.ttfont["OS/2"].usWeightClass
+            # Google Fonts used to set the usWeightClass of Thin static
+            # fonts to 250 and the ExtraLight to 275. Override these
+            # values with 100 and 200.
+            if weight_class == 250:
+                weight_class = 100
+            if weight_class == 275:
+                weight_class = 200
+            variations["wght"] = weight_class
+
+        # wdth
+        # We cannot simply use OS/2.usWidthClass since Google Fonts
+        # releases Condensed styles as new families. These new families
+        # have a usWidthClass of 5 (Normal).
+        parsed_width = find_token(
+            os.path.basename(static_font.path),
+            list(WIDTH_NAME_TO_FVAR.keys())
+        )
+        if parsed_width:
+            variations["wdth"] = WIDTH_NAME_TO_FVAR[parsed_width]
+        else:
+            logger.debug(f"Couldn't parse weight value from {dfont.path}")
+            width_class = static_font.ttfont["OS/2"].usWidthClass
+            variations["wdth"] = WIDTH_CLASS_TO_FVAR[width_class]
+        # TODO (M Foley) add slnt axes
+        self.set_variations(variations)
 
     def recalc_tables(self):
         """Recalculate DFont tables"""
