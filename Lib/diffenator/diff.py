@@ -320,6 +320,19 @@ def _modified_names(names_before, names_after):
     return table
 
 
+def _add_glyph_descriptions(glyphs):
+    """Add unicode name for uniXXXX glyphs for better understanding"""
+    for glyph in glyphs:
+        glyph['description'] = ''
+        _glyph_name = glyph['glyph'].name
+        if _glyph_name.startswith('uni'):
+            _hex_unicode = _glyph_name[3:]
+            try:
+                glyph['description'] = unicodedata.name(chr(int(_hex_unicode, 16)))
+            except:
+                pass
+    return glyphs
+
 @timer
 def diff_glyphs(font_before, font_after,
                 thresh=0.00, scale_upms=True, render_diffs=False):
@@ -357,21 +370,21 @@ def diff_glyphs(font_before, font_after,
     glyphs_before_h = {r['glyph'].key: r for r in glyphs_before}
     glyphs_after_h = {r['glyph'].key: r for r in glyphs_after}
 
-    missing = _subtract_items(glyphs_before_h, glyphs_after_h)
-    new = _subtract_items(glyphs_after_h, glyphs_before_h)
-    modified = _modified_glyphs(glyphs_before_h, glyphs_after_h, thresh,
-                                scale_upms=scale_upms, render_diffs=render_diffs)
+    missing = _add_glyph_descriptions(_subtract_items(glyphs_before_h, glyphs_after_h))
+    new = _add_glyph_descriptions(_subtract_items(glyphs_after_h, glyphs_before_h))
+    modified = _add_glyph_descriptions(_modified_glyphs(glyphs_before_h, glyphs_after_h, thresh,
+                                scale_upms=scale_upms, render_diffs=render_diffs))
     
     new = DiffTable("glyphs new", font_before, font_after, data=new, renderable=True)
-    new.report_columns(["glyph", "area", "string"])
+    new.report_columns(["glyph", "description", "area", "string"])
     new.sort(key=lambda k: k["glyph"].name)
 
     missing = DiffTable("glyphs missing", font_before, font_after, data=missing, renderable=True)
-    missing.report_columns(["glyph", "area", "string"])
+    missing.report_columns(["glyph", "description", "area", "string"])
     missing.sort(key=lambda k: k["glyph"].name)
 
     modified = DiffTable("glyphs modified", font_before, font_after, data=modified, renderable=True)
-    modified.report_columns(["glyph", "diff", "string"])
+    modified.report_columns(["glyph", "description", "diff", "string"])
     modified.sort(key=lambda k: abs(k["diff"]), reverse=True)
     return {
         'new': new,
