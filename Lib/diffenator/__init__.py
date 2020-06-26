@@ -353,6 +353,12 @@ class DFontTableIMG(DFontTable):
 class Formatter:
     """Base Class for formatters"""
 
+    def start_document(self):
+        pass
+
+    def close_document(self):
+        pass
+
     def __init__(self):
         self._text = []
 
@@ -447,29 +453,49 @@ class MDFormatter(Formatter):
 class HTMLFormatter(Formatter):
     """Formatter for HTML"""
 
-    def style(self):
+    def start_document(self):
         self._text.append(
             """
-            <style>
-            html{font-family: sans-serif; padding: 10px;}
+<!DOCTYPE html>
+<html>
+<head>
+<meta property="text/html; charset=utf-8" http-equiv="Content-Type">
+</head>
+<body>
+"""
+        )
 
-            table{
-              font-family: arial, sans-serif;
-              border-collapse: collapse;
-              width: 100%;
-            }
-
-            td, th {
-              border: 1px solid #dddddd;
-              text-align: left;
-              padding: 8px;
-            }
-
-            tr:nth-child(even) {
-              background-color: #dddddd;
-              }
-            </style>
+    def close_document(self):
+        self._text.append(
             """
+</body>
+</html>
+"""
+        )
+
+    def style(self):
+        self._text.append(
+"""
+<style>
+html{font-family: sans-serif; padding: 10px;}
+
+table{
+  font-family: arial, sans-serif;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+td, th {
+  border: 1px solid #dddddd;
+  text-align: left;
+  padding: 8px;
+}
+
+tr:nth-child(even) {
+  background-color: #dddddd;
+  }
+</style>
+"""
         )
     def heading(self, string):
         self._text.append("<h1>{}</h1>\n".format(string))

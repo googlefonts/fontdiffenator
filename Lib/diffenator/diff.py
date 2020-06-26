@@ -21,6 +21,7 @@ import os
 import time
 import logging
 from PIL import Image
+import unicodedata
 
 
 __all__ = ['DiffFonts', 'diff_metrics', 'diff_kerning',
@@ -143,6 +144,7 @@ class DiffFonts:
         elif r_type == "html":
             report_header = HTMLFormatter()
 
+        report_header.start_document()
         report_header.style()
         report_header.heading("Diffenator")
         report_header.paragraph(("Displaying the {} most significant items in "
@@ -164,6 +166,16 @@ class DiffFonts:
                                        image=image))
                     else:
                         reports.append(current_table.to_html(limit=limit))
+
+        # Create empty formatters again, just to extract close_document()
+        if r_type == "txt":
+            report_header = TXTFormatter()
+        elif r_type == "md":
+            report_header = MDFormatter()
+        elif r_type == "html":
+            report_header = HTMLFormatter()
+        report_header.close_document()
+        reports.append(report_header.text)
 
         if dst:
             with open(dst, 'w') as doc:
