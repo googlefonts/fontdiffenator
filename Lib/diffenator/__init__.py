@@ -25,7 +25,9 @@ CHOICES = [
     'attribs',
     'metrics',
     'glyphs',
-    'kerns'
+    'kerns',
+    'gdef_base',
+    'gdef_mark',
 ]
 
 logger = logging.getLogger("fontdiffenator")
@@ -125,7 +127,8 @@ class Tbl:
         return result + 300
 
     def _to_png(self, font, font_position=None, dst=None,
-                limit=800, size=1500, tab_width=1500, padding_characters=""):
+                limit=800, size=1500, tab_width=1500, prefix_characters="",
+                suffix_characters=""):
         """Use HB, FreeType and Cairo to produce a png for a table.
 
         Parameters
@@ -189,9 +192,10 @@ class Tbl:
         x_pos = x_tab
         y_pos = 200
         for idx, row in enumerate(self._data[:limit]):
-            string = "{}{}{}".format(padding_characters,
-                                     row['string'],
-                                     padding_characters)
+            string = "{}{}{}".format(
+                prefix_characters,
+                row['string'],
+                suffix_characters)
             buf = self._shape_string(font, string, row['features'])
             char_info = buf.glyph_infos
             char_pos = buf.glyph_positions
@@ -314,16 +318,18 @@ class DiffTable(Tbl):
                              loop=0
             )
 
-    def to_gif(self, dst, padding_characters="", limit=800):
+    def to_gif(self, dst, prefix_characters="", suffix_characters="", limit=800):
         tab_width = max(self._tab_width(self._font_a),
                         self._tab_width(self._font_b))
         img_a = self._to_png(self._font_a, "Before",
                              tab_width=tab_width,
-                             padding_characters=padding_characters,
+                             prefix_characters=prefix_characters,
+                             suffix_characters=suffix_characters,
                              limit=limit)
         img_b = self._to_png(self._font_b, "After",
                              tab_width=tab_width,
-                             padding_characters=padding_characters,
+                             prefix_characters=prefix_characters,
+                             suffix_characters=suffix_characters,
                              limit=limit)
 
         img_a.save(

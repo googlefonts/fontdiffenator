@@ -18,7 +18,7 @@ Font Diffenator
 Report differences between two fonts.
 
 Diffs can be made for the following categories, names, marks, mkmks,
-attribs, metrics, glyphs and kerns.
+attribs, metrics, glyphs, kerns, gdef_base and gdef_mark.
 
 Examples
 --------

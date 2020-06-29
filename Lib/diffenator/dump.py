@@ -647,3 +647,38 @@ class DumpAnchors:
                               "mark_glyph", "mark_x", "mark_y"])
         return table
 
+
+GDEF_CLASSES = {1: "base", 2: "ligature", 3: "mark", 4: "component_glyph"}
+
+
+def dump_gdef(font):
+    """Dump a font's GDEF table. Function will return two tables, one for
+    base glyphs, the other for mark glyphs."""
+    table_base = DFontTableIMG(font, "gdef_base", renderable=True)
+    table_mark = DFontTableIMG(font, "gdef_mark", renderable=True)
+    if "GDEF" not in font.ttfont:
+        return (table_base, table_mark)
+    gdef_classes = font.ttfont['GDEF'].table.GlyphClassDef.classDefs
+    for glyph_name, class_ in gdef_classes.items():
+        glyph = font.glyph(glyph_name)
+        if class_ == 1:
+            table_base.append({
+                "glyph": glyph,
+                "class": GDEF_CLASSES[class_],
+                "string": glyph.characters,
+                'features': glyph.features,
+            })
+        elif class_ == 3:
+            table_mark.append({
+                "glyph": glyph,
+                "class": GDEF_CLASSES[class_],
+                "string": glyph.characters,
+                'features': glyph.features,
+            })
+    for tbl in (table_base, table_mark):
+        tbl.report_columns(["glyph", "class"])
+        tbl.sort(key=lambda k: k["class"])
+    return (table_base, table_mark)
+
+
+# TODO dump GDEF.LigCaretList
