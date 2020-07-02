@@ -75,5 +75,23 @@ class TestGposMarkDump(unittest.TestCase):
         self.assertEqual(len(font.mkmks), 4)
 
 
+class TestGDEFMarks(unittest.TestCase):
+
+    def test_base_and_mark(self):
+        font = mock_font()
+        fea="""
+        markClass [acutecomb] <anchor 150 0> @top;
+
+        feature mark {
+            pos base [A Aacute]
+             <anchor 100 300> mark @top;
+        } mark;
+        """
+        font.builder.addOpenTypeFeatures(fea)
+        font.recalc_tables()
+        self.assertEqual(len(font.gdef_mark), 1)
+        self.assertEqual(len(font.gdef_base), 2)
+
+
 if __name__ == '__main__':
     unittest.main()
