@@ -375,7 +375,11 @@ def font_matcher(font_before, font_after, axes=None):
     """Instantiate a variable font so it matches a static font. If two
     variable fonts and an axes dict is provided, instantiate both
     variable fonts using the axes dict."""
-    if font_before.is_variable and not font_after.is_variable:
+    if not font_before.is_variable and font_after.is_variable and axes:
+        variations = {s.split('=')[0]: float(s.split('=')[1]) for s
+                      in axes.split(", ")}
+        font_after.set_variations(variations)
+    elif font_before.is_variable and not font_after.is_variable:
         font_before.set_variations_from_static(font_after)
 
     elif not font_before.is_variable and font_after.is_variable:

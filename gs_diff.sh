@@ -1,0 +1,1 @@
+diffenator /Users/marcfoley/Downloads/GSv3_vs_v3_001-VF/A/GoogleSansText-Medium.ttf /Users/marcfoley/Downloads/GSv3_vs_v3_001-VF/B/GoogleSans\[opsz\,wght\].ttf -i "wght=500, opsz=10" -rd -r ~/Desktop/correct4 -ol 1000 -html > ~/Desktop/correct4/index.html
