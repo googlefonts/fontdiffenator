@@ -4,8 +4,8 @@ Dumper
 
 Dump a font table.
 
-Tables which can be dumped are attribs, metrics, kerns, glyphs, names
-marks and mkmks.
+Tables which can be dumped are attribs, metrics, kerns, glyphs, names,
+marks, mkmks, gdef_base and gdef_mark.
 
 Examples
 --------

@@ -10,7 +10,9 @@ from diffenator.diff import (
     diff_marks,
     diff_kerning,
     diff_area,
-    _diff_images
+    _diff_images,
+    diff_gdef_base,
+    diff_gdef_mark,
 )
 import sys
 from PIL import Image
@@ -432,6 +434,80 @@ class TestKerns(unittest.TestCase):
         diff = diff_kerning(font_a, font_b)
         modified = diff['modified']._data
         self.assertEqual(modified, [])
+
+
+class TestGDEF(unittest.TestCase):
+
+    def test_bases(self):
+        font_a = mock_font()
+        fea_a="""
+        markClass [acutecomb] <anchor 150 0> @top;
+
+        feature mark {
+            pos base [A Aacute]
+             <anchor 100 300> mark @top;
+        } mark;
+        """
+        font_a.builder.addOpenTypeFeatures(fea_a)
+        font_a.recalc_tables()
+
+
+
+        font_b = mock_font()
+        fea_b="""
+        markClass [acutecomb] <anchor 150 0> @top;
+
+        feature mark {
+            pos base [A] # Missing Aacute!
+             <anchor 100 300> mark @top;
+        } mark;
+        """
+        font_b.builder.addOpenTypeFeatures(fea_b)
+        font_b.recalc_tables()
+        # missing
+        diff = diff_gdef_base(font_a, font_b)
+        missing = diff['missing']._data
+        self.assertEqual(len(missing), 1)
+        # new
+        diff = diff_gdef_base(font_b, font_a)
+        new = diff['new']._data
+        self.assertEqual(len(new), 1)
+
+    def test_mark(self):
+        font_a = mock_font()
+        fea_a="""
+        markClass [acutecomb gravecomb] <anchor 150 0> @top;
+
+        feature mark {
+            pos base [A]
+             <anchor 100 300> mark @top;
+        } mark;
+        """
+        font_a.builder.addOpenTypeFeatures(fea_a)
+        font_a.recalc_tables()
+
+
+
+        font_b = mock_font()
+        fea_b="""
+        markClass [acutecomb] <anchor 150 0> @top; # missing gravecomb!
+
+        feature mark {
+            pos base [A]
+             <anchor 100 300> mark @top;
+        } mark;
+        """
+        font_b.builder.addOpenTypeFeatures(fea_b)
+        font_b.recalc_tables()
+        # missing
+        diff = diff_gdef_mark(font_a, font_b)
+        missing = diff['missing']._data
+        self.assertEqual(len(missing), 1)
+        # new
+        diff = diff_gdef_mark(font_b, font_a)
+        new = diff['new']._data
+        self.assertEqual(len(new), 1)
+
 
 
 class TestDiffFonts(unittest.TestCase):

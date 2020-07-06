@@ -10,7 +10,8 @@ from diffenator.dump import (
         dump_glyphs,
         dump_glyph_metrics,
         dump_attribs,
-        dump_nametable
+        dump_nametable,
+        dump_gdef
 )
 from copy import copy
 import uharfbuzz as hb
@@ -260,6 +261,7 @@ class DFont(TTFont):
         self.names = dump_nametable(self)
         self.kerns = dump_kerning(self)
         self.metrics = dump_glyph_metrics(self)
+        self.gdef_base, self.gdef_mark = dump_gdef(self)
 
 
 class InputGenerator(HbInputGenerator):
@@ -348,6 +350,7 @@ class Glyph:
         self.key = self.characters + ''.join(features)
         self.font = font
         self.index = self.font.ttfont.getGlyphID(name)
+        self.width = self.font.ttfont['hmtx'].metrics[name][0]
 
     def __repr__(self):
         return self.name

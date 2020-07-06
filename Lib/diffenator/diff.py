@@ -97,6 +97,10 @@ class DiffFonts:
                 self.mkmks(self._settings["mkmks_thresh"])
             if "cbdt" in self._settings["to_diff"]:
                 self.cbdt(self._settings["cbdt_thresh"])
+            if "gdef_base" in self._settings["to_diff"]:
+                self.gdef_base()
+            if "gdef_mark" in self._settings["to_diff"]:
+                self.gdef_mark()
 
     def run_all_diffs(self):
         self.names()
@@ -107,6 +111,8 @@ class DiffFonts:
         self.marks(self._settings["marks_thresh"])
         self.mkmks(self._settings["mkmks_thresh"])
         self.cbdt(self._settings["cbdt_thresh"])
+        self.gdef_base()
+        self.gdef_mark()
 
     def to_dict(self):
         serialised_data = self._serialise()
@@ -128,7 +134,14 @@ class DiffFonts:
                     filename = _table.table_name.replace(" ", "_") + ".gif"
                     img_path = os.path.join(dst, filename)
                     if table == "metrics":
-                        _table.to_gif(img_path, padding_characters="II", limit=limit)
+                        _table.to_gif(img_path, prefix_characters="II", suffix_characters="II", limit=limit)
+                    elif table == "gdef_mark":
+                        prefix = "A"
+                        _table.to_gif(img_path, prefix_characters=prefix, limit=limit)
+                    elif table == "gdef_base":
+                        suffix = chr(int("0301", 16)) # acutecomb
+                        _table.to_gif(img_path, suffix_characters=suffix, limit=limit)
+
                     else:
                         _table.to_gif(img_path, limit=limit)
 
@@ -245,6 +258,12 @@ class DiffFonts:
 
     def names(self):
         self._data["names"] = diff_nametable(self.font_before, self.font_after)
+
+    def gdef_base(self):
+        self._data["gdef_base"] = diff_gdef_base(self.font_before, self.font_after)
+
+    def gdef_mark(self):
+        self._data["gdef_mark"] = diff_gdef_mark(self.font_before, self.font_after)
 
 
 def _subtract_items(items_a, items_b):
@@ -826,4 +845,38 @@ def diff_cbdt_glyphs(font_before, font_after, thresh=4, render_path=None, html_o
 
     return {
         "modified": modified
+    }
+
+
+@timer
+def diff_gdef_base(font_before, font_after):
+    """Diff gdef base glyphs"""
+    tables = _gdef(font_before, font_after, "gdef_base")
+    return tables
+
+
+@timer
+def diff_gdef_mark(font_before, font_after):
+    """Diff gdef mark glyphs"""
+    return _gdef(font_before, font_after, "gdef_mark")
+
+
+def _gdef(font_before, font_after, type_):
+    base_before = getattr(font_before, type_)
+    base_after = getattr(font_after, type_)
+
+    base_before_h = {i['glyph'].key: i for i in base_before}
+    base_after_h = {i['glyph'].key: i for i in base_after}
+
+    missing = _subtract_items(base_before_h, base_after_h)
+    new = _subtract_items(base_after_h, base_before_h)
+    new = DiffTable(f"{type_} new", font_before, font_after, data=new, renderable=True)
+    new.report_columns(["glyph"])
+    new.sort(key=lambda k: k["glyph"].width, reverse=True)
+    missing = DiffTable(f"{type_} missing", font_before, font_after, data=missing, renderable=True)
+    missing.report_columns(["glyph"])
+    missing.sort(key=lambda k: k["glyph"].width, reverse=True)
+    return {
+        "new": new,
+        "missing": missing,
     }
