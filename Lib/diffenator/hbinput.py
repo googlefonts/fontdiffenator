@@ -218,20 +218,24 @@ class HbInputGenerator(object):
         """Return inputs from GSUB type 5.2 (class-based context) rules."""
 
         inputs = []
+        involved = set(st.ClassDef.classDefs.keys()) | set(st.Coverage.glyphs)
+        if not any([glyph in involved for glyph in glyphs]):
+            return []
         prefixes = st.Coverage.glyphs
         class_defs = st.ClassDef.classDefs.items()
         for ruleset in st.SubClassSet:
             if ruleset is None:
                 continue
             for rule in ruleset.SubClassRule:
+                if not any(subst_lookup.LookupListIndex == target_i
+                            for subst_lookup in rule.SubstLookupRecord):
+                    continue
                 classes = [
                     [n for n, c in class_defs if c == cls]
                     for cls in rule.Class]
                 input_lists = [prefixes] + classes
                 input_glyphs = self._min_permutation(input_lists, glyphs)
-                if not (any(subst_lookup.LookupListIndex == target_i
-                            for subst_lookup in rule.SubstLookupRecord) and
-                        self._is_sublist(input_glyphs, glyphs)):
+                if not self._is_sublist(input_glyphs, glyphs):
                     continue
                 inputs.append(self._input_with_context(
                     gsub, input_glyphs, cur_i, seen))
