@@ -30,6 +30,7 @@ class HbInputGenerator(object):
     def __init__(self, font):
         self.font = font
         self.memo = {}
+        self.gsub_memo = {}
         self.reverse_cmap = build_reverse_cmap(self.font.ttfont)
 
         self.widths = {}
@@ -160,7 +161,9 @@ class HbInputGenerator(object):
         """
 
         inputs = []
-
+        memo_key = (tuple(glyphs), target_i)
+        if memo_key in self.gsub_memo:
+            return self.gsub_memo[memo_key]
         # try to get a feature tag to activate this lookup
         for feature in gsub.FeatureList.FeatureRecord:
             if target_i in feature.Feature.LookupListIndex:
@@ -191,7 +194,8 @@ class HbInputGenerator(object):
                             gsub, st, glyphs, target_i, cur_i, seen))
 
         inputs = [i for i in inputs if i is not None]
-        return min(inputs) if inputs else None
+        self.gsub_memo[memo_key] = min(inputs) if inputs else None
+        return self.gsub_memo[memo_key]
 
     def _input_from_5_1(self, gsub, st, glyphs, target_i, cur_i, seen):
         """Return inputs from GSUB type 5.1 (simple context) rules."""
