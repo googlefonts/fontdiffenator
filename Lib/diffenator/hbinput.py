@@ -30,6 +30,7 @@ class HbInputGenerator(object):
     def __init__(self, font):
         self.font = font
         self.memo = {}
+        self.gsub_memo = {}
         self.reverse_cmap = build_reverse_cmap(self.font.ttfont)
 
         self.widths = {}
@@ -160,7 +161,9 @@ class HbInputGenerator(object):
         """
 
         inputs = []
-
+        memo_key = (tuple(glyphs), target_i)
+        if memo_key in self.gsub_memo:
+            return self.gsub_memo[memo_key]
         # try to get a feature tag to activate this lookup
         for feature in gsub.FeatureList.FeatureRecord:
             if target_i in feature.Feature.LookupListIndex:
@@ -191,7 +194,8 @@ class HbInputGenerator(object):
                             gsub, st, glyphs, target_i, cur_i, seen))
 
         inputs = [i for i in inputs if i is not None]
-        return min(inputs) if inputs else None
+        self.gsub_memo[memo_key] = min(inputs) if inputs else None
+        return self.gsub_memo[memo_key]
 
     def _input_from_5_1(self, gsub, st, glyphs, target_i, cur_i, seen):
         """Return inputs from GSUB type 5.1 (simple context) rules."""
@@ -214,20 +218,24 @@ class HbInputGenerator(object):
         """Return inputs from GSUB type 5.2 (class-based context) rules."""
 
         inputs = []
+        involved = set(st.ClassDef.classDefs.keys()) | set(st.Coverage.glyphs)
+        if not any([glyph in involved for glyph in glyphs]):
+            return []
         prefixes = st.Coverage.glyphs
         class_defs = st.ClassDef.classDefs.items()
         for ruleset in st.SubClassSet:
             if ruleset is None:
                 continue
             for rule in ruleset.SubClassRule:
+                if not any(subst_lookup.LookupListIndex == target_i
+                            for subst_lookup in rule.SubstLookupRecord):
+                    continue
                 classes = [
                     [n for n, c in class_defs if c == cls]
                     for cls in rule.Class]
                 input_lists = [prefixes] + classes
                 input_glyphs = self._min_permutation(input_lists, glyphs)
-                if not (any(subst_lookup.LookupListIndex == target_i
-                            for subst_lookup in rule.SubstLookupRecord) and
-                        self._is_sublist(input_glyphs, glyphs)):
+                if not self._is_sublist(input_glyphs, glyphs):
                     continue
                 inputs.append(self._input_with_context(
                     gsub, input_glyphs, cur_i, seen))
