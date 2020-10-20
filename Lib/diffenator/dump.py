@@ -658,6 +658,8 @@ def dump_gdef(font):
     table_mark = DFontTableIMG(font, "gdef_mark", renderable=True)
     if "GDEF" not in font.ttfont:
         return (table_base, table_mark)
+    if not font.ttfont['GDEF'].table.GlyphClassDef:
+        return (table_base, table_mark)
     gdef_classes = font.ttfont['GDEF'].table.GlyphClassDef.classDefs
     for glyph_name, class_ in gdef_classes.items():
         glyph = font.glyph(glyph_name)
