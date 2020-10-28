@@ -244,7 +244,7 @@ class DFont(TTFont):
         if parsed_width:
             variations["wdth"] = WIDTH_NAME_TO_FVAR[parsed_width]
         else:
-            logger.debug(f"Couldn't parse weight value from {dfont.path}")
+            logger.debug(f"Couldn't parse weight value from {static_font.path}")
             width_class = static_font.ttfont["OS/2"].usWidthClass
             variations["wdth"] = WIDTH_CLASS_TO_FVAR[width_class]
         # TODO (M Foley) add slnt axes
