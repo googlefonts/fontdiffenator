@@ -13,6 +13,7 @@ from diffenator.dump import (
         dump_nametable,
         dump_gdef
 )
+from diffenator.constants import FTHintMode
 from copy import copy
 import uharfbuzz as hb
 import freetype
@@ -79,7 +80,8 @@ WIDTH_NAME_TO_FVAR = {
 
 class DFont(TTFont):
     """Container font for ttfont, freetype and hb fonts"""
-    def __init__(self, path=None, lazy=False, size=1500):
+    def __init__(self, path=None, lazy=False, size=1500,
+                 ft_load_glyph_flags=FTHintMode.UNHINTED):
         self.path = path
         self.ttfont = TTFont(self.path)
 
@@ -105,6 +107,7 @@ class DFont(TTFont):
 
         self.ftfont = freetype.Face(self.path)
         self.ftslot = self.ftfont.glyph
+        self.ft_load_glyph_flags=ft_load_glyph_flags
 
         self.size = size
         if self.ftfont.is_scalable:
