@@ -24,7 +24,7 @@ from PIL import Image
 
 
 __all__ = ['DiffFonts', 'diff_metrics', 'diff_kerning',
-            'diff_marks', 'diff_mkmks', 'diff_attribs', 'diff_glyphs']
+           'diff_marks', 'diff_mkmks', 'diff_attribs', 'diff_glyphs']
 
 logger = logging.getLogger('fontdiffenator')
 
@@ -64,7 +64,7 @@ class DiffFonts:
         to_diff=["*"],
         render_diffs=False,
         render_path=False,
-        html_output=False
+        html_output=False,
     )
     def __init__(self, font_before, font_after, settings=None):
         self.font_before = font_before
@@ -423,13 +423,13 @@ def diff_rendering(glyph_before, glyph_after, ft_size=1500):
     font_after.ftfont.set_char_size(ft_size)
 
     # Image before
-    font_before.ftfont.load_glyph(glyph_before.index, flags=6)
+    font_before.ftfont.load_glyph(glyph_before.index, flags=font_before.ft_load_glyph_flags)
     bitmap_before = font_before.ftslot.bitmap
     img_before = Image.new("L", (bitmap_before.width, bitmap_before.rows))
     img_before.putdata(bitmap_before.buffer)
 
     # Image after
-    font_after.ftfont.load_glyph(glyph_after.index, flags=6)
+    font_after.ftfont.load_glyph(glyph_after.index, flags=font_after.ft_load_glyph_flags)
     bitmap_after = font_after.ftslot.bitmap
     img_after = Image.new("L", (bitmap_after.width, bitmap_after.rows))
     img_after.putdata(bitmap_after.buffer)

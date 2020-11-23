@@ -7,6 +7,7 @@ if sys.version_info[0] < 3 and sys.version_info[1] < 6:
 from array import array
 from PIL import Image
 from cairo import Context, ImageSurface, FORMAT_A8, FORMAT_ARGB32
+from diffenator.constants import FTHintMode
 from freetype.raw import *
 import uharfbuzz as hb
 import os
@@ -201,7 +202,7 @@ class Tbl:
             char_pos = buf.glyph_positions
             for info, pos in zip(char_info, char_pos):
                 gid = info.codepoint
-                font.ftfont.load_glyph(gid, flags=6)
+                font.ftfont.load_glyph(gid, flags=font.ft_load_glyph_flags)
                 bitmap = font.ftslot.bitmap
 
                 if bitmap.width > 0:
