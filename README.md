@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/googlefonts/fontdiffenator.svg?branch=master)](https://travis-ci.org/googlefonts/fontdiffenator)
+[![Build Status](https://travis-ci.org/googlefonts/fontdiffenator.svg?branch=main)](https://travis-ci.org/googlefonts/fontdiffenator)
 
 # Diffenator
 
