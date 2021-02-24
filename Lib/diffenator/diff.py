@@ -17,6 +17,7 @@ Module to diff fonts.
 from __future__ import print_function
 import collections
 from diffenator import DiffTable, TXTFormatter, MDFormatter, HTMLFormatter, read_cbdt
+from .structural import structural_diff
 import os
 import time
 import logging
@@ -101,6 +102,8 @@ class DiffFonts:
                 self.gdef_base()
             if "gdef_mark" in self._settings["to_diff"]:
                 self.gdef_mark()
+            if "structural" in self._settings["to_diff"]:
+                self.structural()
 
     def run_all_diffs(self):
         self.names()
@@ -113,6 +116,8 @@ class DiffFonts:
         self.cbdt(self._settings["cbdt_thresh"])
         self.gdef_base()
         self.gdef_mark()
+        # Don't run a structural diff unless specifically asked for
+        # self.structural()
 
     def to_dict(self):
         serialised_data = self._serialise()
@@ -265,6 +270,8 @@ class DiffFonts:
     def gdef_mark(self):
         self._data["gdef_mark"] = diff_gdef_mark(self.font_before, self.font_after)
 
+    def structural(self):
+        self._data["structural"] = structural_diff(self.font_before, self.font_after)
 
 def _subtract_items(items_a, items_b):
     subtract = set(items_a.keys()) - set(items_b.keys())
