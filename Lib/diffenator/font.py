@@ -190,8 +190,8 @@ class DFont(TTFont):
         subfamilyname = static_font.ttfont['name'].getName(2, 3, 1, 1033)
         typosubfamilyname = static_font.ttfont['name'].getName(17, 3, 1, 1033)
 
-        subfamilyname = typosubfamilyname.toUnicode() if typosubfamilyname else \
-            subfamilyname.toUnicode()
+        anysubfamilyname = typosubfamilyname or subfamilyname
+        subfamilyname = anysubfamilyname.toUnicode() if anysubfamilyname else ""
 
         # The Google Fonts v1 api can only handle the wght axis. For families
         # which have widths, we have to release them as a seperate family,
