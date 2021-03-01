@@ -225,7 +225,7 @@ class DFont(TTFont):
         if parsed_weight:
             variations["wght"] = WEIGHT_NAME_TO_FVAR[parsed_weight]
         else:
-            logger.debug(f"Couldn't parse weight value from {dfont.path}")
+            logger.debug(f"Couldn't parse weight value from {static_font.path}")
             weight_class = static_font.ttfont["OS/2"].usWeightClass
             # Google Fonts used to set the usWeightClass of Thin static
             # fonts to 250 and the ExtraLight to 275. Override these
