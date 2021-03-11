@@ -26,6 +26,21 @@ def structural_diff(left, right):
             if diff:
                 results[t] = diff
     results["directory"] = directory
+
+
+    results["glyphset"] = DiffTable("Glyphs in font", left, right)
+    results["glyphset"].report_columns(["glyph", "before", "after"])
+    left_glyphs = set(left.ttfont.getGlyphOrder())
+    right_glyphs = set(right.ttfont.getGlyphOrder())
+    for g in sorted(list(left_glyphs | right_glyphs)):
+        if not (g in left_glyphs and g in right_glyphs):
+            results["glyphset"].append(
+                {
+                    "glyph": g,
+                    "before": ("X" if g in left_glyphs else ""),
+                    "after": ("X" if g in right_glyphs else ""),
+                }
+            )
     return results
 
 
