@@ -10,7 +10,7 @@ def structural_diff(left, right):
 
     directory = DiffTable("OpenType Table Directory", left, right)
     directory.report_columns(["table", "before", "after"])
-    for t in sorted(list(lefttables & righttables)):
+    for t in sorted(list(lefttables | righttables)):
         if not (t in left.ttfont and t in right.ttfont):
             directory.append(
                 {
