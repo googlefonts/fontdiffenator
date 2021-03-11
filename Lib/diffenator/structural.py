@@ -192,3 +192,40 @@ class Diff_avar(OTTableDiffer):
                 if lseg != rseg:
                     self.diffreport.append({"axis": tag, "before": lseg, "after": rseg})
         return self.diffreport
+
+class Diff_cmap(OTTableDiffer):
+    def diff(self):
+        self.prepdiff()
+
+        self.diffreport.report_columns(["cmaptable", "before", "after"])
+
+        tablesleft = self.left.ttfont["cmap"].tables
+        tablesright = self.right.ttfont["cmap"].tables
+
+        for i in range(max(len(tablesleft), len(tablesleft)) + 1):
+            if i > len(tablesleft)-1:
+                left = None
+            else:
+                left = (tablesleft[i].format,tablesleft[i].platformID, tablesleft[i].platEncID)
+            if i > len(tablesright)-1:
+                right = None
+            else:
+                right = (tablesright[i].format,tablesright[i].platformID, tablesright[i].platEncID)
+
+            if left != right:
+                self.diffreport.append({"cmaptable": i, "before": left, "after": right})
+            if left and right:
+                tleft = tablesleft[i].cmap
+                tright = tablesright[i].cmap
+                for cp in set(tleft.keys() & tright.keys()):
+                    if cp in tleft:
+                        left_value = "%i -> %s" % (cp, tleft[cp])
+                    else:
+                        left_value = "NOT PRESENT"
+                    if cp in tright:
+                        right_value = "%i -> %s" % (cp, tright[cp])
+                    else:
+                        right_value = "NOT PRESENT"
+                    if left_value != right_value:
+                        self.diffreport.append({"cmaptable": i, "before": left_value, "after": right_value})
+        return self.diffreport
