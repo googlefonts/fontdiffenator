@@ -16,7 +16,6 @@ TODO (M Foley) Remove this module
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from __future__ import division, print_function
-from fontTools.misc import unichr
 from fontTools.ttLib import TTFont
 
 
@@ -96,7 +95,7 @@ class HbInputGenerator(object):
 
         # see if this glyph has a simple unicode mapping
         if name in self.reverse_cmap:
-            text = unichr(self.reverse_cmap[name])
+            text = chr(self.reverse_cmap[name])
             inputs.append(((), text))
 
         # check the substitution features
