@@ -1,5 +1,4 @@
 """Module for DFont"""
-from fontTools.misc.py23 import unichr
 from fontTools.ttLib import TTFont, newTable
 from fontTools.pens.ttGlyphPen import TTGlyphPen
 from fontTools.varLib.mutator import instantiateVariableFont
@@ -319,8 +318,8 @@ class InputGenerator(HbInputGenerator):
 
         # see if this glyph has a simple unicode mapping
         if name in self.reverse_cmap:
-            text = unichr(self.reverse_cmap[name])
-            if text != unichr(0):
+            text = chr(self.reverse_cmap[name])
+            if text != chr(0):
                 inputs.append(((), text))
 
         # check the substitution features
