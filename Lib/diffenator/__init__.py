@@ -122,6 +122,8 @@ class Tbl:
         result = 0
         for row in self._data[:limit]:
             buf = self._shape_string(font, row['string'], row['features'])
+            if not buf.glyph_positions:
+                continue
             adv = sum([i.x_advance for i in buf.glyph_positions])
             if adv > result:
                 result = adv
@@ -200,6 +202,8 @@ class Tbl:
             buf = self._shape_string(font, string, row['features'])
             char_info = buf.glyph_infos
             char_pos = buf.glyph_positions
+            if not char_info or not char_pos:
+                continue
             for info, pos in zip(char_info, char_pos):
                 gid = info.codepoint
                 font.ftfont.load_glyph(gid, flags=font.ft_load_glyph_flags)
