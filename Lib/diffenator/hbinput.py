@@ -34,9 +34,10 @@ class HbInputGenerator(object):
 
         self.widths = {}
         glyph_set = self.font.ttfont.getGlyphSet()
+        glyf_table = font.ttfont['glyf']
         for name in glyph_set.keys():
             glyph = glyph_set[name]
-            glyf = font.ttfont['glyf'][name]
+            glyf = glyf_table[name]
             if glyph.width:
                 width = glyph.width
             elif hasattr(glyf, 'xMax'):
