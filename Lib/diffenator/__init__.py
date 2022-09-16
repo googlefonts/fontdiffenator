@@ -29,6 +29,7 @@ CHOICES = [
     'kerns',
     'gdef_base',
     'gdef_mark',
+    'structural'
 ]
 
 logger = logging.getLogger("fontdiffenator")
