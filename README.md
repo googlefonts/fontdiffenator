@@ -2,6 +2,8 @@
 
 # Diffenator
 
+**THIS HAS BEEN SUPERCEDED BY [diffenator2](https://github.com/googlefonts/diffenator2)**
+
 Python 3 library/tool to compare two **TTF** fonts against each other. It's capable of producing diff images using Harfbuzz, Cairo and FreeType. It can also produce Markdown reports for Github.
 
 ## Features
